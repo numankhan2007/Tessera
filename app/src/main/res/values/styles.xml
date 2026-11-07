@@ -1,0 +1,12 @@
+<resources>
+    <style name="TesseraTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">serif</item>
+        <item name="android:colorAccent">#E6C75C</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>
