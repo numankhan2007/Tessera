@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Required by a general-purpose launcher to enumerate user-visible launchable apps. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
     <application android:allowBackup="true" android:icon="@drawable/ic_tessera_launcher"
         android:label="Tessera" android:supportsRtl="true" android:theme="@style/TesseraTheme">
         <activity android:name=".LauncherActivity" android:configChanges="orientation|screenSize|keyboardHidden"
-            android:exported="true" android:label="Tessera" android:launchMode="singleTask"
+            android:exported="true" android:launchMode="singleTask"
             android:windowSoftInputMode="adjustNothing">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

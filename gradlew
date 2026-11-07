@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 set -eu
-VERSION=8.14.3
+VERSION=8.14.6
 HOME_DIR="${GRADLE_USER_HOME:-$HOME/.gradle}/tessera-gradle/gradle-$VERSION"
 if [ ! -x "$HOME_DIR/bin/gradle" ]; then
   mkdir -p "$(dirname "$HOME_DIR")"

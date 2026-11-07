@@ -1,6 +1,7 @@
 package com.example.tessera;
 
 import android.app.AlertDialog;
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.ClipData;
 import android.content.Context;
@@ -34,6 +35,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /** Native, responsive launcher workspace and searchable app drawer. */
+@SuppressLint("ViewConstructor")
 public final class TesseraHomeView extends LinearLayout {
     public interface Callbacks {
         void onLaunchItem(WorkspaceItem item);
@@ -375,7 +377,7 @@ public final class TesseraHomeView extends LinearLayout {
 
     private void showAccessibilitySettings() {
         android.widget.Switch motion=new android.widget.Switch(context);
-        motion.setText("Reduce launcher motion");
+        motion.setText(R.string.reduce_launcher_motion);
         motion.setTextColor(IVORY);motion.setChecked(reducedMotion);
         LinearLayout box=new LinearLayout(context);box.setPadding(dp(22),dp(16),dp(22),dp(12));
         box.addView(motion);
@@ -461,7 +463,9 @@ public final class TesseraHomeView extends LinearLayout {
         removeCallbacks(clockTicker);
         if(isAttachedToWindow())postDelayed(clockTicker,60000);
     }
-    private void updateIndicator(){pageIndicator.setText((currentPage+1)+" / "+pageCount);}
+    private void updateIndicator(){
+        pageIndicator.setText(context.getString(R.string.workspace_page_indicator,currentPage+1,pageCount));
+    }
     private TextView label(String text,float size,int color,Typeface face) {
         TextView v=new TextView(context);v.setText(text);v.setTextSize(size);v.setTextColor(color);
         v.setTypeface(face);v.setGravity(Gravity.CENTER_VERTICAL);return v;

@@ -451,7 +451,7 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     }
 
     private void showAppShortcuts(LauncherApp app) {
-        if(Build.VERSION.SDK_INT<25||launcherApps==null) {
+        if(launcherApps==null) {
             Toast.makeText(this,"App shortcuts require Android 7.1 or newer.",Toast.LENGTH_SHORT).show();return;
         }
         try {

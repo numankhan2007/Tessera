@@ -1,0 +1,4 @@
+<resources>
+    <string name="reduce_launcher_motion">Reduce launcher motion</string>
+    <string name="workspace_page_indicator">%1$d / %2$d</string>
+</resources>

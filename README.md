@@ -38,7 +38,7 @@ Tessera is a native Android HOME application designed around a wallpaper-first w
 
 ## Build
 
-Requirements: JDK 17, Android SDK Platform 36, Android SDK Build Tools 36.0.0, Gradle 8.14.3.
+Requirements: JDK 17, Android SDK Platform 36, Android SDK Build Tools 36.0.0, Gradle 8.14.6.
 
 \`\`\`bash
 gradle --no-daemon :app:assembleDebug
