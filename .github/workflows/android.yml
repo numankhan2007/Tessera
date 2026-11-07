@@ -26,6 +26,26 @@ jobs:
           gradle-version: '8.14.3'
       - name: Build debug APK
         run: gradle --no-daemon :app:assembleDebug
+      - name: Audit APK (three verification passes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          AAPT="$ANDROID_HOME/build-tools/36.0.0/aapt"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          test -s "$APK"
+          for pass in 1 2 3; do
+            echo "APK verification pass ${pass}/3"
+            unzip -tq "$APK"
+            "$AAPT" dump badging "$APK" > /tmp/tessera-badging.txt
+            grep -Fq "package: name='com.example.tessera.debug'" /tmp/tessera-badging.txt
+            grep -Eq "^launchable-activity:" /tmp/tessera-badging.txt
+            grep -Fq "sdkVersion:'26'" /tmp/tessera-badging.txt
+            grep -Fq "targetSdkVersion:'35'" /tmp/tessera-badging.txt
+            "$APKSIGNER" verify --verbose --print-certs "$APK"
+          done
+          echo "Final APK SHA-256:"
+          sha256sum "$APK"
       - uses: actions/upload-artifact@v4
         with:
           name: tessera-debug-apk
