@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Fixed restoration of the fifth dock slot from workspace JSON backups.
+- Added an instrumentation regression test for dock-slot persistence.
+
 ## 0.2.0
 
 - Replaced the fixed home canvas with a persistent multi-page native workspace.

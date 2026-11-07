@@ -316,7 +316,8 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
                 String title=o.optString("title","App");
                 String payload=o.optString("payload","");
                 long serial=o.optLong("userSerial",0);
-                insert(page,Math.max(0,Math.min(3,o.optInt("cellX",0))),
+                int maxCellX=page==-1?4:3;
+                insert(page,Math.max(0,Math.min(maxCellX,o.optInt("cellX",0))),
                         Math.max(0,Math.min(5,o.optInt("cellY",0))),
                         Math.max(1,Math.min(4,o.optInt("spanX",1))),
                         Math.max(1,Math.min(4,o.optInt("spanY",1))),

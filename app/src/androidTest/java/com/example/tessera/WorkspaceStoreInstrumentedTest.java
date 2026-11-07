@@ -59,7 +59,7 @@ public final class WorkspaceStoreInstrumentedTest {
     }
 
     @Test public void dockIsPersistentAndWidgetBindingsAreSkippedOnRestore() throws Exception {
-        store.addApp(-1,0,0,"com.example.dock/.Main","Dock app",0);
+        store.addApp(-1,4,0,"com.example.dock/.Main","Dock app",0);
         store.addWidget(0,0,0,9876,"com.example.widget/.Provider","Clock",4,2);
         String backup=store.exportJson();
 
@@ -73,7 +73,7 @@ public final class WorkspaceStoreInstrumentedTest {
         List<WorkspaceItem> items=store.all();
         assertEquals(1,items.size());
         assertEquals(-1,items.get(0).page);
-        assertEquals(0,items.get(0).cellX);
+        assertEquals(4,items.get(0).cellX);
     }
 
     @Test public void uninstallPrunesFolderEntriesAndEmptyFolders() {
