@@ -80,10 +80,10 @@ public final class TesseraHomeView extends LinearLayout {
 
         LinearLayout brandRow=new LinearLayout(c);
         brandRow.setGravity(Gravity.CENTER_VERTICAL);
-        TextView brand=label("TESSERA",12,MINT,Typeface.create("sans-serif-medium",0));
+        TextView brand=label("TESSERA",12,MINT,Typeface.create("sans-serif-medium",Typeface.NORMAL));
         brand.setLetterSpacing(.22f);
         brandRow.addView(brand,new LayoutParams(0,dp(32),1));
-        clock=label("",13,IVORY,Typeface.create("serif",0));
+        clock=label("",13,IVORY,Typeface.create("serif",Typeface.NORMAL));
         brandRow.addView(clock,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(32)));
         TextView add=button("＋",GOLD);
         add.setContentDescription("Workspace options");
@@ -94,7 +94,7 @@ public final class TesseraHomeView extends LinearLayout {
         TextView title=label("A quieter kind of everyday.",26,IVORY,Typeface.create("serif",Typeface.ITALIC));
         title.setPadding(dp(4),dp(6),0,0);
         addView(title,new LayoutParams(-1,dp(50)));
-        TextView subtitle=label("YOUR UNIVERSE",10,GOLD,Typeface.create("sans-serif-medium",0));
+        TextView subtitle=label("YOUR UNIVERSE",10,GOLD,Typeface.create("sans-serif-medium",Typeface.NORMAL));
         subtitle.setLetterSpacing(.16f);
         subtitle.setPadding(dp(4),0,0,0);
         addView(subtitle,new LayoutParams(-1,dp(28)));
@@ -113,7 +113,7 @@ public final class TesseraHomeView extends LinearLayout {
         pager.addView(pageStrip,new HorizontalScrollView.LayoutParams(-2,-1));
         addView(pager,new LayoutParams(-1,0,1f));
 
-        pageIndicator=label("1 / 1",11,MUTED,Typeface.create("sans-serif",0));
+        pageIndicator=label("1 / 1",11,MUTED,Typeface.create("sans-serif",Typeface.NORMAL));
         pageIndicator.setGravity(Gravity.CENTER);
         addView(pageIndicator,new LayoutParams(-1,dp(24)));
 
@@ -157,7 +157,7 @@ public final class TesseraHomeView extends LinearLayout {
             column.setPadding(dp(4),dp(8),dp(4),dp(8));
             pageStrip.addView(column,new LayoutParams(width,LayoutParams.MATCH_PARENT));
             TextView pageTitle=label(String.format(Locale.getDefault(),"SPACE  %02d",page+1),9,MUTED,
-                    Typeface.create("sans-serif-medium",0));
+                    Typeface.create("sans-serif-medium",Typeface.NORMAL));
             pageTitle.setLetterSpacing(.18f);
             pageTitle.setPadding(dp(8),0,0,dp(8));
             column.addView(pageTitle,new LayoutParams(-1,dp(24)));
@@ -203,7 +203,7 @@ public final class TesseraHomeView extends LinearLayout {
                 if(host.getParent() instanceof ViewGroup)((ViewGroup)host.getParent()).removeView(host);
                 wrapper.addView(host,new FrameLayout.LayoutParams(-1,-1));
             } else {
-                TextView missing=label("Widget unavailable",11,MUTED,Typeface.create("sans-serif",0));
+                TextView missing=label("Widget unavailable",11,MUTED,Typeface.create("sans-serif",Typeface.NORMAL));
                 missing.setGravity(Gravity.CENTER);wrapper.addView(missing);
             }
             wrapper.setOnLongClickListener(v->{showItemMenu(item,v);return true;});
@@ -233,7 +233,7 @@ public final class TesseraHomeView extends LinearLayout {
         iconFrame.addView(icon,ip);
         tile.addView(iconFrame,new LayoutParams(dp(54),dp(54)));
         String title=WorkspaceItem.FOLDER.equals(item.type)?"Folder":item.title;
-        TextView name=label(title==null?"App":title,10.5f,IVORY,Typeface.create("sans-serif-medium",0));
+        TextView name=label(title==null?"App":title,10.5f,IVORY,Typeface.create("sans-serif-medium",Typeface.NORMAL));
         name.setGravity(Gravity.CENTER);
         name.setMaxLines(2);name.setEllipsize(android.text.TextUtils.TruncateAt.END);
         tile.addView(name,new LayoutParams(-1,dp(30)));
@@ -277,7 +277,7 @@ public final class TesseraHomeView extends LinearLayout {
         Drawable d=findIcon(item);
         if(d!=null)icon.setImageDrawable(d);else icon.setImageResource(android.R.drawable.sym_def_app_icon);
         tile.addView(icon,new LayoutParams(dp(38),dp(38)));
-        TextView name=label(item.title==null?"App":item.title,9,IVORY,Typeface.create("sans-serif",0));
+        TextView name=label(item.title==null?"App":item.title,9,IVORY,Typeface.create("sans-serif",Typeface.NORMAL));
         name.setGravity(Gravity.CENTER);name.setMaxLines(1);
         tile.addView(name,new LayoutParams(-1,dp(20)));
         tile.setContentDescription(item.title);
@@ -376,7 +376,7 @@ public final class TesseraHomeView extends LinearLayout {
         LinearLayout root=new LinearLayout(context);root.setOrientation(VERTICAL);
         root.setPadding(dp(20),dp(18),dp(20),dp(18));root.setBackground(round(BG,dp(28),0x667ac7a1));
         LinearLayout head=new LinearLayout(context);head.setGravity(Gravity.CENTER_VERTICAL);
-        TextView title=label("YOUR UNIVERSE",11,MINT,Typeface.create("sans-serif-medium",0));
+        TextView title=label("YOUR UNIVERSE",11,MINT,Typeface.create("sans-serif-medium",Typeface.NORMAL));
         title.setLetterSpacing(.18f);head.addView(title,new LayoutParams(0,dp(34),1f));
         TextView close=button("×",IVORY);close.setOnClickListener(v->dialog.dismiss());
         head.addView(close,new LayoutParams(dp(42),dp(42)));root.addView(head);
@@ -401,7 +401,7 @@ public final class TesseraHomeView extends LinearLayout {
                 row.setPadding(dp(4),dp(7),dp(4),dp(7));
                 ImageView icon=new ImageView(context);icon.setImageDrawable(app.icon);
                 row.addView(icon,new LayoutParams(dp(42),dp(42)));
-                TextView name=label(app.label,14,IVORY,Typeface.create("sans-serif-medium",0));
+                TextView name=label(app.label,14,IVORY,Typeface.create("sans-serif-medium",Typeface.NORMAL));
                 name.setPadding(dp(12),0,0,0);row.addView(name,new LayoutParams(0,dp(48),1f));
                 TextView pin=button("+",GOLD);pin.setContentDescription("Pin "+app.label+" to Home");
                 pin.setOnClickListener(v->{callbacks.onPinApp(app);dialog.dismiss();});
@@ -451,7 +451,7 @@ public final class TesseraHomeView extends LinearLayout {
         v.setTypeface(face);v.setGravity(Gravity.CENTER_VERTICAL);return v;
     }
     private TextView button(String text,int color) {
-        TextView v=label(text,18,color,Typeface.create("sans-serif-medium",0));
+        TextView v=label(text,18,color,Typeface.create("sans-serif-medium",Typeface.NORMAL));
         v.setGravity(Gravity.CENTER);v.setBackground(round(0x552c493d,dp(16),0x447ac7a1));
         v.setClickable(true);v.setFocusable(true);return v;
     }
