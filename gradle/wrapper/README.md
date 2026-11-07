@@ -1,0 +1,1 @@
+The repository pins Gradle 8.14.3. Generate the official wrapper JAR by running `gradle wrapper --gradle-version 8.14.3` on a machine with Gradle installed. Until then, use the system Gradle command or the bootstrap scripts.
