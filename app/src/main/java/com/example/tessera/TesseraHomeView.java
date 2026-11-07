@@ -130,7 +130,7 @@ public final class TesseraHomeView extends View {
             if(y>=320&&y<=800){int col=Math.max(0,Math.min(3,(int)((x-35)/88)));int row=Math.max(0,(int)((y-333)/105));int i=scrollRows*4+row*4+col;if(i>=0&&i<shown.size())callbacks.onAppSelected(shown.get(i));}
             return;
         }
-        if(y>=690&&y<=758){openDrawer();postDelayed(callbacks::onSearchRequested,280);return;}
+        if(y>=690&&y<=758){openDrawer();postDelayed(callbacks::onLauncherSearchRequested,280);return;}
         if(!defaultHome&&y>=435&&y<=477){callbacks.onDefaultHomeRequested();return;}
         int i=homeIndex(x,y);if(i>=0&&i<apps.size())callbacks.onAppSelected(apps.get(i));
     }
