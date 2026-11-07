@@ -43,6 +43,7 @@ public final class TesseraHomeView extends LinearLayout {
         void onAddWidgetRequested();
         void onAddPageRequested();
         void onRemoveItem(WorkspaceItem item);
+        void onRenameFolder(WorkspaceItem item,String title);
         void onDropItem(WorkspaceItem item,int page,int cellX,int cellY);
         void onResizeWidget(WorkspaceItem item,int spanX,int spanY);
         void onSetHomeRequested();
@@ -150,6 +151,7 @@ public final class TesseraHomeView extends LinearLayout {
         pageStrip.removeAllViews();dock.removeAllViews();
         int width=Math.max(dp(300),getResources().getDisplayMetrics().widthPixels-getPaddingLeft()-getPaddingRight());
         for(int page=0;page<pageCount;page++) {
+            final int pageIndex=page;
             LinearLayout column=new LinearLayout(context);
             column.setOrientation(VERTICAL);
             column.setPadding(dp(4),dp(8),dp(4),dp(8));
@@ -167,12 +169,12 @@ public final class TesseraHomeView extends LinearLayout {
             grid.setBackground(round(0x142e5947,dp(24),0x227ac7a1));
             grid.setPadding(dp(3),dp(4),dp(3),dp(4));
             grid.setTag(page);
-            grid.setOnDragListener((v,e)->handleDrop(v,e,page,false));
+            grid.setOnDragListener((v,e)->handleDrop(v,e,pageIndex,false));
             column.addView(grid,new LayoutParams(-1,dp(510)));
             for(WorkspaceItem item:items) if(item.page==page) addWorkspaceChild(grid,item);
             TextView addSpace=button(page==pageCount-1?"+  Add another space":"·  ·  ·",MUTED);
             addSpace.setTextSize(12);
-            addSpace.setOnClickListener(v->{if(page==pageCount-1)callbacks.onAddPageRequested();});
+            addSpace.setOnClickListener(v->{if(pageIndex==pageCount-1)callbacks.onAddPageRequested();});
             column.addView(addSpace,new LayoutParams(-1,dp(34)));
         }
 
@@ -253,6 +255,13 @@ public final class TesseraHomeView extends LinearLayout {
         return tile;
     }
 
+    private LauncherApp findApp(WorkspaceItem item) {
+        if(item.component==null)return null;
+        for(LauncherApp app:apps)if(item.component.equals(app.componentName.flattenToString())
+                &&item.userSerial==app.userSerial)return app;
+        return null;
+    }
+
     private Drawable findIcon(WorkspaceItem item) {
         if(item.component==null||apps==null)return null;
         for(LauncherApp app:apps)if(app.componentName.flattenToString().equals(item.component)
@@ -308,8 +317,25 @@ public final class TesseraHomeView extends LinearLayout {
             anchor.startDragAndDrop(data,new View.DragShadowBuilder(anchor),item,0);
             return true;
         });
-        if(WorkspaceItem.FOLDER.equals(item.type))
+        if(WorkspaceItem.FOLDER.equals(item.type)) {
             menu.getMenu().add("Open folder").setOnMenuItemClickListener(mi->{callbacks.onLaunchItem(item);return true;});
+            menu.getMenu().add("Rename folder").setOnMenuItemClickListener(mi->{
+                EditText name=new EditText(context);name.setSingleLine(true);name.setText(item.title==null?"Folder":item.title);
+                new AlertDialog.Builder(context).setTitle("Rename folder").setView(name)
+                        .setPositiveButton("Save",(d,w)->{
+                            String value=name.getText().toString().trim();
+                            if(!value.isEmpty())callbacks.onRenameFolder(item,value);
+                        }).setNegativeButton("Cancel",null).show();
+                return true;
+            });
+        }
+        if(WorkspaceItem.APP.equals(item.type)||WorkspaceItem.SHORTCUT.equals(item.type)) {
+            menu.getMenu().add("App info & shortcuts").setOnMenuItemClickListener(mi->{
+                LauncherApp app=findApp(item);
+                if(app!=null)callbacks.onAppLongPressed(app,anchor);
+                return true;
+            });
+        }
         if(WorkspaceItem.WIDGET.equals(item.type)) {
             menu.getMenu().add("Wider").setOnMenuItemClickListener(mi->{callbacks.onResizeWidget(item,Math.min(4,item.spanX+1),item.spanY);return true;});
             menu.getMenu().add("Narrower").setOnMenuItemClickListener(mi->{callbacks.onResizeWidget(item,Math.max(1,item.spanX-1),item.spanY);return true;});

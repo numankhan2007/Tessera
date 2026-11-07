@@ -300,6 +300,13 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
         Toast.makeText(this,"Workspace page "+(page+1)+" created.",Toast.LENGTH_SHORT).show();
     }
 
+    @Override public void onRenameFolder(WorkspaceItem item,String title) {
+        if(item!=null&&WorkspaceItem.FOLDER.equals(item.type)) {
+            workspaceStore.renameFolder(item.id,title);
+            renderWorkspace();
+        }
+    }
+
     @Override public void onRemoveItem(WorkspaceItem item) {
         if(item==null)return;
         if(WorkspaceItem.WIDGET.equals(item.type)) {

@@ -99,6 +99,12 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
                 new String[]{String.valueOf(id),WorkspaceItem.WIDGET});
     }
 
+    public synchronized void renameFolder(long id,String title) {
+        ContentValues v=new ContentValues();v.put("title",title);
+        getWritableDatabase().update("workspace_items",v,"_id=? AND type=?",
+                new String[]{String.valueOf(id),WorkspaceItem.FOLDER});
+    }
+
     public synchronized void delete(long id) {
         getWritableDatabase().delete("workspace_items","_id=?",new String[]{String.valueOf(id)});
     }
