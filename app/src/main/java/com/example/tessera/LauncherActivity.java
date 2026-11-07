@@ -2,7 +2,7 @@ package com.example.tessera;
 
 import android.app.Activity;
 import android.app.ActivityOptions;
-import android.app.LauncherApps;
+import android.content.pm.LauncherApps;
 import android.app.role.RoleManager;
 import android.content.Context;
 import android.content.Intent;
@@ -122,7 +122,12 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     @Override protected void onResume(){super.onResume();if(homeView!=null)homeView.setDefaultHome(isDefaultHome());}
     @Override protected void onDestroy(){if(launcherApps!=null&&packageCallback!=null)launcherApps.unregisterCallback(packageCallback);super.onDestroy();}
 
-    @Override public void onSearchRequested(){
+    @Override public boolean onSearchRequested(){
+        showSearchInput();
+        return true;
+    }
+    @Override public void onLauncherSearchRequested(){ showSearchInput(); }
+    private void showSearchInput(){
         searchVisible=true;searchInput.setVisibility(View.VISIBLE);searchInput.requestFocus();
         searchInput.post(()->{InputMethodManager m=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);if(m!=null)m.showSoftInput(searchInput,InputMethodManager.SHOW_IMPLICIT);});
     }
