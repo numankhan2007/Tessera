@@ -9,6 +9,9 @@ import android.content.SharedPreferences;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /** Small transactional persistence layer for pages, dock, folders and widgets. */
 public final class WorkspaceStore extends SQLiteOpenHelper {
@@ -64,7 +67,13 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
     }
 
     public synchronized long addWidget(int page,int x,int y,int widgetId,String provider,String title) {
-        return insert(page,x,y,4,2,WorkspaceItem.WIDGET,provider,title,null,widgetId,0);
+        return addWidget(page,x,y,widgetId,provider,title,4,2);
+    }
+
+    public synchronized long addWidget(int page,int x,int y,int widgetId,String provider,String title,
+                                       int spanX,int spanY) {
+        return insert(page,x,y,Math.max(1,Math.min(4,spanX)),Math.max(1,Math.min(4,spanY)),
+                WorkspaceItem.WIDGET,provider,title,null,widgetId,0);
     }
 
     private long insert(int page,int x,int y,int sx,int sy,String type,String component,
@@ -82,8 +91,10 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
         getWritableDatabase().update("workspace_items",v,"_id=?",new String[]{String.valueOf(id)});
     }
 
-    public synchronized void resizeWidget(long id,int spanY) {
-        ContentValues v=new ContentValues();v.put("span_y",Math.max(1,Math.min(4,spanY)));
+    public synchronized void resizeWidget(long id,int spanX,int spanY) {
+        ContentValues v=new ContentValues();
+        v.put("span_x",Math.max(1,Math.min(4,spanX)));
+        v.put("span_y",Math.max(1,Math.min(4,spanY)));
         getWritableDatabase().update("workspace_items",v,"_id=? AND type=?",
                 new String[]{String.valueOf(id),WorkspaceItem.WIDGET});
     }
@@ -152,6 +163,31 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
         int count=pageCount()+1;prefs.edit().putInt("page_count",count).apply();return count-1;
     }
 
+    public synchronized boolean hasOverlap(int page,int x,int y,int spanX,int spanY,long exceptId) {
+        for(WorkspaceItem item:all()) {
+            if(item.id==exceptId||item.page!=page)continue;
+            boolean horizontal=x<item.cellX+item.spanX && x+spanX>item.cellX;
+            boolean vertical=y<item.cellY+item.spanY && y+spanY>item.cellY;
+            if(horizontal&&vertical)return true;
+        }
+        return false;
+    }
+
+    public synchronized int firstFreeSpanCell(int page,int spanX,int spanY) {
+        List<WorkspaceItem> items=atPage(page);
+        spanX=Math.max(1,Math.min(4,spanX));spanY=Math.max(1,Math.min(6,spanY));
+        for(int y=0;y<=6-spanY;y++)for(int x=0;x<=4-spanX;x++) {
+            boolean occupied=false;
+            for(WorkspaceItem i:items) {
+                boolean horizontal=x<i.cellX+i.spanX && x+spanX>i.cellX;
+                boolean vertical=y<i.cellY+i.spanY && y+spanY>i.cellY;
+                if(horizontal&&vertical){occupied=true;break;}
+            }
+            if(!occupied)return y*4+x;
+        }
+        return -1;
+    }
+
     public synchronized int firstFreeWidgetRow(int page,int spanY) {
         List<WorkspaceItem> items=atPage(page);
         for(int y=0;y<=6-spanY;y++) {
@@ -190,6 +226,71 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
             }
         }
     }
+
+    private int skippedWidgetCount;
+
+    /** Export user layout to portable JSON. Widget IDs are device-local and are not restored. */
+    public synchronized String exportJson() throws JSONException {
+        JSONObject root=new JSONObject();
+        root.put("format","tessera-workspace");
+        root.put("version",1);
+        root.put("pageCount",pageCount());
+        JSONArray array=new JSONArray();
+        for(WorkspaceItem item:all()) {
+            JSONObject o=new JSONObject();
+            o.put("page",item.page);o.put("cellX",item.cellX);o.put("cellY",item.cellY);
+            o.put("spanX",item.spanX);o.put("spanY",item.spanY);o.put("type",item.type);
+            o.put("component",item.component==null?JSONObject.NULL:item.component);
+            o.put("title",item.title==null?"":item.title);
+            o.put("payload",item.payload==null?"":item.payload);
+            o.put("userSerial",item.userSerial);
+            if(WorkspaceItem.WIDGET.equals(item.type))o.put("widgetProvider",item.component);
+            array.put(o);
+        }
+        root.put("items",array);
+        return root.toString(2);
+    }
+
+    /** Restore app pins, shortcuts and folders; bound widgets must be added again by Android. */
+    public synchronized int restoreJson(String json) throws JSONException {
+        JSONObject root=new JSONObject(json);
+        if(!"tessera-workspace".equals(root.optString("format"))||root.optInt("version")!=1)
+            throw new JSONException("Unsupported Tessera workspace backup");
+        JSONArray array=root.optJSONArray("items");
+        if(array==null)throw new JSONException("Backup has no workspace items");
+        SQLiteDatabase db=getWritableDatabase();
+        int restored=0;skippedWidgetCount=0;
+        db.beginTransaction();
+        try {
+            db.delete("workspace_items",null,null);
+            int pages=Math.max(1,Math.min(20,root.optInt("pageCount",DEFAULT_PAGES)));
+            for(int i=0;i<array.length();i++) {
+                JSONObject o=array.getJSONObject(i);
+                String type=o.optString("type",WorkspaceItem.APP);
+                if(WorkspaceItem.WIDGET.equals(type)){skippedWidgetCount++;continue;}
+                if(!WorkspaceItem.APP.equals(type)&&!WorkspaceItem.SHORTCUT.equals(type)
+                        &&!WorkspaceItem.FOLDER.equals(type))continue;
+                int page=o.optInt("page",0);
+                if(page<-1||page>19)continue;
+                String component=o.isNull("component")?null:o.optString("component",null);
+                String title=o.optString("title","App");
+                String payload=o.optString("payload","");
+                long serial=o.optLong("userSerial",0);
+                insert(page,Math.max(0,Math.min(3,o.optInt("cellX",0))),
+                        Math.max(0,Math.min(5,o.optInt("cellY",0))),
+                        Math.max(1,Math.min(4,o.optInt("spanX",1))),
+                        Math.max(1,Math.min(4,o.optInt("spanY",1))),
+                        type,component,title,payload.isEmpty()?null:payload,-1,serial);
+                restored++;
+                if(page>=pages)pages=page+1;
+            }
+            prefs.edit().putInt("page_count",pages).apply();
+            db.setTransactionSuccessful();
+        } finally { db.endTransaction(); }
+        return restored;
+    }
+
+    public synchronized int getSkippedWidgetCount(){return skippedWidgetCount;}
 
     private WorkspaceItem from(Cursor c) {
         return new WorkspaceItem(c.getLong(c.getColumnIndexOrThrow("_id")),

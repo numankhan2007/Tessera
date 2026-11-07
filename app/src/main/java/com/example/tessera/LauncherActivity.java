@@ -12,7 +12,6 @@ import android.content.Intent;
 import android.content.pm.LauncherActivityInfo;
 import android.content.pm.LauncherApps;
 import android.content.pm.ShortcutInfo;
-import android.content.pm.UserInfo;
 import android.app.role.RoleManager;
 import android.content.ComponentName;
 import android.graphics.Color;
@@ -46,12 +45,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import org.json.JSONException;
 
 /** Android HOME activity. All app launches and widgets use platform launcher APIs. */
 public final class LauncherActivity extends Activity implements TesseraHomeView.Callbacks {
     private static final int WIDGET_HOST_ID=0x544553;
     private static final int REQUEST_BIND_WIDGET=4102;
     private static final int REQUEST_CONFIGURE_WIDGET=4103;
+    private static final int REQUEST_EXPORT_WORKSPACE=4201;
+    private static final int REQUEST_IMPORT_WORKSPACE=4202;
 
     private LauncherApps launcherApps;
     private UserManager userManager;
@@ -227,8 +235,8 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
             LauncherApp parent=findApp(item.component,item.userSerial);
             if(parent!=null&&launcherApps!=null) {
                 try {
-                    launcherApps.startShortcut(parent.packageName,item.payload,parent.user,
-                            (Rect)null,ActivityOptions.makeBasic().toBundle());
+                    launcherApps.startShortcut(parent.packageName,item.payload,(Rect)null,
+                            ActivityOptions.makeBasic().toBundle(),parent.user);
                 } catch(Exception e) {
                     Toast.makeText(this,"This shortcut is no longer available.",Toast.LENGTH_SHORT).show();
                 }
@@ -308,23 +316,38 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
         else { x=Math.max(0,Math.min(3,x));y=Math.max(0,Math.min(5,y)); }
         if(WorkspaceItem.WIDGET.equals(item.type)) {
             if(page==-1){Toast.makeText(this,"Widgets stay on workspace pages.",Toast.LENGTH_SHORT).show();return;}
-            x=0;y=Math.min(4,y);
+            x=Math.max(0,Math.min(4-item.spanX,x));
+            y=Math.max(0,Math.min(6-item.spanY,y));
         }
         WorkspaceItem target=workspaceStore.findAt(page,x,y,item.id);
         if(target!=null&&target.id!=item.id) {
             if(WorkspaceItem.WIDGET.equals(target.type)||WorkspaceItem.WIDGET.equals(item.type)) {
                 Toast.makeText(this,"That space is occupied by a widget.",Toast.LENGTH_SHORT).show();return;
             }
-            workspaceStore.mergeInto(item.id,target.id);
+            if(WorkspaceItem.FOLDER.equals(item.type)) {
+                int free=workspaceStore.firstFreeCell(page,4,6);
+                if(free<0){Toast.makeText(this,"This page is full.",Toast.LENGTH_SHORT).show();return;}
+                workspaceStore.move(item.id,page,free%4,free/4);
+            } else {
+                workspaceStore.mergeInto(item.id,target.id);
+            }
         } else {
             workspaceStore.move(item.id,page,x,y);
         }
         renderWorkspace();
     }
 
-    @Override public void onResizeWidget(WorkspaceItem item,int spanY) {
+    @Override public void onResizeWidget(WorkspaceItem item,int spanX,int spanY) {
         if(item==null)return;
-        workspaceStore.resizeWidget(item.id,spanY);
+        spanX=Math.max(1,Math.min(4,spanX));
+        spanY=Math.max(1,Math.min(4,spanY));
+        int x=Math.min(item.cellX,4-spanX),y=Math.min(item.cellY,6-spanY);
+        if(workspaceStore.hasOverlap(item.page,x,y,spanX,spanY,item.id)) {
+            Toast.makeText(this,"There is not enough free space to resize this widget.",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        workspaceStore.resizeWidget(item.id,spanX,spanY);
+        workspaceStore.move(item.id,item.page,x,y);
         renderWorkspace();
     }
 
@@ -343,6 +366,53 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     @Override public void onOpenSystemWallpaper() {
         try { startActivity(new Intent(Intent.ACTION_SET_WALLPAPER)); }
         catch(Exception e){Toast.makeText(this,"Wallpaper settings are not available.",Toast.LENGTH_SHORT).show();}
+    }
+
+    @Override public void onBackupWorkspace() {
+        Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        intent.putExtra(Intent.EXTRA_TITLE,"Tessera-workspace-backup.json");
+        startActivityForResult(intent,REQUEST_EXPORT_WORKSPACE);
+    }
+
+    @Override public void onRestoreWorkspace() {
+        Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        startActivityForResult(intent,REQUEST_IMPORT_WORKSPACE);
+    }
+
+    private void writeWorkspaceBackup(Uri uri) {
+        try(OutputStream out=getContentResolver().openOutputStream(uri);
+            OutputStreamWriter writer=new OutputStreamWriter(out,StandardCharsets.UTF_8)) {
+            writer.write(workspaceStore.exportJson());
+            writer.flush();
+            Toast.makeText(this,"Workspace backup exported.",Toast.LENGTH_LONG).show();
+        } catch(Exception e) {
+            Toast.makeText(this,"Could not export the workspace backup.",Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void readWorkspaceBackup(Uri uri) {
+        try(BufferedReader reader=new BufferedReader(new InputStreamReader(
+                getContentResolver().openInputStream(uri),StandardCharsets.UTF_8))) {
+            StringBuilder json=new StringBuilder();
+            String line;
+            while((line=reader.readLine())!=null)json.append(line).append('\n');
+            for(WorkspaceItem item:workspaceStore.all())if(WorkspaceItem.WIDGET.equals(item.type)) {
+                try {widgetHost.deleteAppWidgetId(item.widgetId);} catch(RuntimeException ignored) {}
+            }
+            widgetViews.clear();
+            int restored=workspaceStore.restoreJson(json.toString());
+            int skipped=workspaceStore.getSkippedWidgetCount();
+            renderWorkspace();
+            String message="Restored "+restored+" workspace items.";
+            if(skipped>0)message+=" Re-add "+skipped+" widgets (Android permissions are device-specific).";
+            Toast.makeText(this,message,Toast.LENGTH_LONG).show();
+        } catch(Exception e) {
+            Toast.makeText(this,"Invalid or unreadable Tessera backup.",Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override public void onReducedMotionChanged(boolean enabled) {
@@ -492,16 +562,27 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     }
 
     private void persistWidget(int id,AppWidgetProviderInfo info) {
-        int page=0,row=workspaceStore.firstFreeWidgetRow(page,2);
-        if(row<0){page=workspaceStore.pageCount();workspaceStore.addPage();row=0;}
+        float density=getResources().getDisplayMetrics().density;
+        float availableWidth=getResources().getDisplayMetrics().widthPixels/density-40f;
+        int spanX=Math.max(1,Math.min(4,(int)Math.ceil(info.minWidth/Math.max(1f,availableWidth/4f))));
+        int spanY=Math.max(1,Math.min(4,(int)Math.ceil(info.minHeight/82f)));
+        int page=0,cell=workspaceStore.firstFreeSpanCell(page,spanX,spanY);
+        if(cell<0){page=workspaceStore.pageCount();workspaceStore.addPage();cell=0;}
         String title=String.valueOf(info.loadLabel(getPackageManager()));
-        workspaceStore.addWidget(page,0,row,id,info.provider.flattenToString(),title);
+        workspaceStore.addWidget(page,cell%4,cell/4,id,info.provider.flattenToString(),title,spanX,spanY);
         pendingWidgetId=-1;
         renderWorkspace();
     }
 
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
         super.onActivityResult(requestCode,resultCode,data);
+        if(requestCode==REQUEST_EXPORT_WORKSPACE) {
+            if(resultCode==RESULT_OK&&data!=null&&data.getData()!=null)writeWorkspaceBackup(data.getData());
+            return;
+        } else if(requestCode==REQUEST_IMPORT_WORKSPACE) {
+            if(resultCode==RESULT_OK&&data!=null&&data.getData()!=null)readWorkspaceBackup(data.getData());
+            return;
+        }
         if(requestCode==REQUEST_BIND_WIDGET) {
             int id=pendingWidgetId;
             if(resultCode==RESULT_OK&&id>=0)finishWidgetSetup(id);

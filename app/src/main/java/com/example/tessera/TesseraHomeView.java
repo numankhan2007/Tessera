@@ -44,9 +44,11 @@ public final class TesseraHomeView extends LinearLayout {
         void onAddPageRequested();
         void onRemoveItem(WorkspaceItem item);
         void onDropItem(WorkspaceItem item,int page,int cellX,int cellY);
-        void onResizeWidget(WorkspaceItem item,int spanY);
+        void onResizeWidget(WorkspaceItem item,int spanX,int spanY);
         void onSetHomeRequested();
         void onOpenSystemWallpaper();
+        void onBackupWorkspace();
+        void onRestoreWorkspace();
         void onReducedMotionChanged(boolean enabled);
     }
 
@@ -309,8 +311,10 @@ public final class TesseraHomeView extends LinearLayout {
         if(WorkspaceItem.FOLDER.equals(item.type))
             menu.getMenu().add("Open folder").setOnMenuItemClickListener(mi->{callbacks.onLaunchItem(item);return true;});
         if(WorkspaceItem.WIDGET.equals(item.type)) {
-            menu.getMenu().add("Make taller").setOnMenuItemClickListener(mi->{callbacks.onResizeWidget(item,Math.min(4,item.spanY+1));return true;});
-            menu.getMenu().add("Make shorter").setOnMenuItemClickListener(mi->{callbacks.onResizeWidget(item,Math.max(1,item.spanY-1));return true;});
+            menu.getMenu().add("Wider").setOnMenuItemClickListener(mi->{callbacks.onResizeWidget(item,Math.min(4,item.spanX+1),item.spanY);return true;});
+            menu.getMenu().add("Narrower").setOnMenuItemClickListener(mi->{callbacks.onResizeWidget(item,Math.max(1,item.spanX-1),item.spanY);return true;});
+            menu.getMenu().add("Make taller").setOnMenuItemClickListener(mi->{callbacks.onResizeWidget(item,item.spanX,Math.min(4,item.spanY+1));return true;});
+            menu.getMenu().add("Make shorter").setOnMenuItemClickListener(mi->{callbacks.onResizeWidget(item,item.spanX,Math.max(1,item.spanY-1));return true;});
         }
         menu.getMenu().add("Remove from Home").setOnMenuItemClickListener(mi->{callbacks.onRemoveItem(item);return true;});
         menu.show();
@@ -322,6 +326,8 @@ public final class TesseraHomeView extends LinearLayout {
         menu.getMenu().add("Add widget").setOnMenuItemClickListener(mi->{callbacks.onAddWidgetRequested();return true;});
         menu.getMenu().add("New workspace page").setOnMenuItemClickListener(mi->{callbacks.onAddPageRequested();return true;});
         menu.getMenu().add("Wallpaper").setOnMenuItemClickListener(mi->{callbacks.onOpenSystemWallpaper();return true;});
+        menu.getMenu().add("Back up workspace").setOnMenuItemClickListener(mi->{callbacks.onBackupWorkspace();return true;});
+        menu.getMenu().add("Restore workspace").setOnMenuItemClickListener(mi->{callbacks.onRestoreWorkspace();return true;});
         menu.getMenu().add("Motion & accessibility").setOnMenuItemClickListener(mi->{showAccessibilitySettings();return true;});
         menu.show();
     }
@@ -403,6 +409,10 @@ public final class TesseraHomeView extends LinearLayout {
         drawerDialog=dialog;
         dialog.setOnDismissListener(d->{drawerDialog=null;});
         search.requestFocus();
+    }
+
+    public boolean isDrawerOpen() {
+        return drawerDialog!=null && drawerDialog.isShowing();
     }
 
     private void updateClock() {
