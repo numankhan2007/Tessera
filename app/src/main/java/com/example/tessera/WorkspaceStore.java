@@ -99,6 +99,40 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
                 new String[]{String.valueOf(id),WorkspaceItem.WIDGET});
     }
 
+    public synchronized void removePackage(String packageName,long userSerial) {
+        if(packageName==null||packageName.isEmpty())return;
+        SQLiteDatabase db=getWritableDatabase();
+        db.beginTransaction();
+        try {
+            for(WorkspaceItem item:all()) {
+                if((WorkspaceItem.APP.equals(item.type)||WorkspaceItem.SHORTCUT.equals(item.type))
+                        &&item.userSerial==userSerial&&item.component!=null
+                        &&item.component.startsWith(packageName+"/")) {
+                    db.delete("workspace_items","_id=?",new String[]{String.valueOf(item.id)});
+                } else if(WorkspaceItem.FOLDER.equals(item.type)&&item.payload!=null) {
+                    StringBuilder kept=new StringBuilder();
+                    for(String entry:item.payload.split("\\n")) {
+                        String[] parts=entry.split("\\|",4);
+                        boolean belongs=false;
+                        if(parts.length>=2&&parts[0].startsWith(packageName+"/")) {
+                            try {belongs=Long.parseLong(parts[1])==userSerial;} catch(NumberFormatException ignored) {}
+                        }
+                        if(!belongs) {
+                            if(kept.length()>0)kept.append('\n');
+                            kept.append(entry);
+                        }
+                    }
+                    if(kept.length()==0)db.delete("workspace_items","_id=?",new String[]{String.valueOf(item.id)});
+                    else if(!kept.toString().equals(item.payload)) {
+                        ContentValues v=new ContentValues();v.put("payload",kept.toString());
+                        db.update("workspace_items",v,"_id=?",new String[]{String.valueOf(item.id)});
+                    }
+                }
+            }
+            db.setTransactionSuccessful();
+        } finally { db.endTransaction(); }
+    }
+
     public synchronized void renameFolder(long id,String title) {
         ContentValues v=new ContentValues();v.put("title",title);
         getWritableDatabase().update("workspace_items",v,"_id=? AND type=?",

@@ -139,14 +139,21 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     private void registerPackageCallback() {
         if(launcherApps==null||callbackRegistered)return;
         packageCallback=new LauncherApps.Callback() {
-            @Override public void onPackageRemoved(String p,UserHandle u){refreshApps();}
+            @Override public void onPackageRemoved(String p,UserHandle u){
+                long serial;
+                try {serial=userManager.getSerialNumberForUser(u);} catch(Exception e) {serial=u.hashCode();}
+                workspaceStore.removePackage(p,serial);
+                refreshApps();
+            }
             @Override public void onPackageAdded(String p,UserHandle u){refreshApps();}
             @Override public void onPackageChanged(String p,UserHandle u){refreshApps();}
             @Override public void onPackagesAvailable(String[] p,UserHandle u,boolean replacing){refreshApps();}
             @Override public void onPackagesUnavailable(String[] p,UserHandle u,boolean replacing){refreshApps();}
             @Override public void onPackagesSuspended(String[] p,UserHandle u){refreshApps();}
             @Override public void onPackagesUnsuspended(String[] p,UserHandle u){refreshApps();}
-            @Override public void onShortcutsChanged(String p,List<ShortcutInfo> shortcuts,UserHandle u){}
+            @Override public void onShortcutsChanged(String p,List<ShortcutInfo> shortcuts,UserHandle u){
+                runOnUiThread(()->renderWorkspace());
+            }
         };
         launcherApps.registerCallback(packageCallback);
         callbackRegistered=true;

@@ -2,99 +2,107 @@
 
 **Kinetic Spatial UI · Native Android launcher**
 
-Tessera is being rebuilt as a real Android HOME application. Its foundation is a wallpaper-first launcher surface, a live app catalogue backed by Android's `LauncherApps` service, an animated app drawer, and an in-launcher app search.
+Tessera is a native Android HOME application designed around a wallpaper-first workspace, expressive motion, deep emerald surfaces and antique-gold accents. It uses Android launcher APIs for app discovery, app launching, shortcuts and widgets; the home screen is not a WebView or a simulated desktop.
 
-> **Current status:** early native foundation (0.1.0). This is a clean source reconstruction informed by the uploaded APK's package/class inventory and the approved Figma direction. The original Java/Kotlin source was not present in the upload, so this repository does not claim to be the exact decompilation of the APK.
+> **Current status:** feature-complete core launcher foundation (0.2.0). It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
 
-## Product direction
+## Core functionality
 
-- Wallpaper-first surface with translucent, restrained emerald/antique-gold treatments.
-- Expressive serif italic display typography and RTL-aware Arabic secondary typography; app labels and controls stay legible.
-- Morphing app drawer, portal-style search, gesture-following transitions, and native app launching.
-- No WebView-based home screen, desktop simulator, or fake app windows.
-
-## Current implementation
-
-| Capability | Status |
+| Area | Current implementation |
 |---|---|
-| Android HOME intent and default-home flow | Implemented |
-| Live installed-app discovery via `LauncherApps` | Implemented |
-| Open selected launcher activities | Implemented |
-| Home surface, live clock/date, dock and shortcuts | Initial implementation |
-| Swipe-up drawer and swipe-down dismissal | Initial implementation |
-| App drawer search and filtering | Initial implementation |
-| Long-press app → Android app info | Implemented |
-| Package install/update/uninstall refresh callbacks | Implemented |
-| Wallpaper display behind translucent launcher window | Implemented; device validation pending |
-| Drag/drop, folders, multi-page workspace persistence | Planned |
-| App widgets through `AppWidgetHost` | Planned |
-| Deep shortcuts, work profiles, backup/restore | Planned |
-| Production motion tuning and accessibility QA | Planned |
+| Android HOME role | HOME/DEFAULT intent filters and Android 10+ \`RoleManager\` request flow |
+| App catalogue | \`LauncherApps\` enumeration across accessible user profiles |
+| App lifecycle | App install, removal, package change, profile-aware refresh and pinned-item cleanup |
+| App launch | Native \`LauncherApps.startMainActivity()\` with the correct user profile |
+| Workspace pages | Multiple horizontal pages, persisted in SQLite |
+| Home pins | Pin installed applications from the searchable drawer |
+| Dock | Persisted dock slots; move items to/from the dock |
+| Repositioning | Long-press an item, choose **Move / Reposition**, then drop it onto a page or dock location |
+| Folders | Drop an app onto another app to create a folder; drop more apps onto a folder to add them; open, rename and remove folders |
+| App drawer | Native dialog with live label filtering and pin-to-home action |
+| App shortcuts | Discover app-published dynamic/manifest shortcuts, pin them and launch them through \`LauncherApps\` |
+| Work profiles | Enumerate profiles Android exposes to the launcher and retain the user's profile serial with pins |
+| Widgets | Native \`AppWidgetHost\` / \`AppWidgetHostView\`; provider selection, Android bind permission, provider configuration, persistence, removal and grid-span resizing |
+| Wallpaper | Translucent launcher window with system wallpaper behind it; opens Android wallpaper picker |
+| Backup / restore | Export/import workspace JSON through Android's Storage Access Framework |
+| Accessibility basics | Native text controls, app labels and content descriptions; system app/widget surfaces retain their platform accessibility behavior |
 
-## Architecture
+## Data and behavior
 
-```text
-LauncherActivity
-├── LauncherApps service
-│   ├── getActivityList()
-│   ├── startMainActivity()
-│   └── LauncherApps.Callback
-├── TesseraHomeView
-│   ├── wallpaper-first home canvas
-│   ├── animated drawer transition
-│   ├── searchable app grid
-│   └── touch/gesture routing
-└── EditText search input
-```
-
-The first milestone deliberately uses Android framework APIs and a custom Canvas view to keep the launcher lightweight. App discovery and app launching are system-backed rather than simulated.
+- Workspace entries, folder contents, widget IDs and layout coordinates are stored locally in \`tessera-workspace.db\`.
+- The dock is represented as page \`-1\`; normal workspace pages are numbered from zero.
+- A folder contains the original component, profile serial, title and optional shortcut ID of each child entry.
+- When an app is uninstalled, pinned app and shortcut entries for that package/profile are removed. Folder entries are pruned as well.
+- App widgets are Android-owned bindings. They are not transferable between devices or installs, so a JSON restore skips widget bindings and tells the user to add those widgets again.
+- App visibility depends on Android package visibility and the profiles available to the current user. \`QUERY_ALL_PACKAGES\` is declared because app discovery is a central launcher function; review the current Google Play policy before Play distribution.
 
 ## Build
 
-Requirements: JDK 17, Android SDK Platform 37, Android SDK Build Tools 36.0.0, Gradle 9.6.0.
+Requirements: JDK 17, Android SDK Platform 36, Android SDK Build Tools 36.0.0, Gradle 8.14.3.
 
-```bash
-./gradlew :app:assembleDebug
-```
+\`\`\`bash
+gradle --no-daemon :app:assembleDebug
+\`\`\`
 
-The repository contains a lightweight Gradle bootstrap script because a generated Gradle Wrapper JAR could not be obtained in the source-generation environment. The script downloads the pinned Gradle distribution on the first run. In CI, GitHub Actions installs Gradle directly and builds `:app:assembleDebug`.
+The GitHub Actions workflow installs the Android SDK, builds the debug APK, runs Android lint, then audits the generated artifact three times. The audit checks ZIP integrity, package ID, HOME launcher entry, min/target SDK metadata, and APK signature.
 
-APK output: `app/build/outputs/apk/debug/app-debug.apk`.
+APK output:
+
+\`\`\`text
+app/build/outputs/apk/debug/app-debug.apk
+\`\`\`
+
+The CI APK is debug-signed with Android's generated debug key. It is intended for installation and device testing, not Play Store release. The debug application ID is \`com.example.tessera.debug\`; the release application ID is \`com.example.tessera\`.
 
 ## Install and select as Home
 
-Install the debug APK, open Tessera, then choose **Set Tessera as your Home app**. On Android 10+, Tessera asks Android's `RoleManager` for the Home role. On earlier releases, it opens Home settings.
+1. Download \`app-debug.apk\` from the successful GitHub Actions artifact.
+2. Open the APK on the Android device and allow installation from the selected source when prompted.
+3. Open Tessera and tap **Set Tessera as your Home app**.
+4. Choose Tessera in Android's Home app role chooser.
 
-The release `applicationId` is kept as `com.example.tessera`, matching the uploaded APK's DEX package identity. Debug builds add `.debug` so the new launcher can be installed beside the prototype. An in-place release update still requires the original APK's signing certificate; if the key differs, Android requires uninstalling the old app before installing the new release build.
+To pin apps, open the drawer and tap the \`+\` beside an app. Long-press an app in the drawer to reveal **Pin to Home**, **App shortcuts** and **App info**. To move a home item, long-press it, select **Move / Reposition**, then drop it at the target location. Dropping one app on another creates a folder.
 
-## Typography
+## Known limitations / release gates
 
-The current source uses Android's installed `serif`, `serif-italic`, and `cursive` typefaces as safe fallbacks. The Figma specimen explores Alegreya Italic, Amiri, Aladin, Reem Kufi, and Aref Ruqaa. Packaging the final licensed font files, checking font attribution, and validating Arabic shaping on the target device remain a separate integration step. Do not assume the Figma font assignments automatically install fonts on Android.
+This is a complete installable core launcher, not a claim that every possible launcher feature is implemented or that every OEM device has been tested.
 
-## Privacy and package visibility
+- Widget layout uses a four-column grid with provider-derived initial spans and menu-based span resizing. It does not yet have drag handles, arbitrary pixel-level resizing or guaranteed behavior for every vendor widget.
+- Restored backups intentionally omit widget bindings because Android widget IDs and bind grants are device-specific.
+- Folder contents are app/shortcut entries; folders do not yet support nested folders or custom artwork.
+- Drawer search currently matches installed app labels; it does not search contacts, settings, files, web content or contextual actions.
+- Workspace icons use the app-provided launcher icons. Licensed Reem Kufi / Amiri / Aref Ruqaa assets are not bundled yet; the UI uses installed Android typefaces as safe fallbacks.
+- Advanced motion systems, custom icon packs, themed folder previews, per-page wallpaper effects and shortcut pinning requests that require vendor confirmation remain future enhancements.
+- CI verifies compilation, Android lint, APK archive integrity, package metadata and debug signature. It does not replace installation and gesture/widget testing on a physical device. OEM launchers, work-profile policies, battery optimizers, edge-to-edge insets and individual widgets need device-level QA.
+- A release APK needs a user-owned signing key and signing configuration. The debug key must not be used as a public release identity.
 
-The launcher declares `QUERY_ALL_PACKAGES` because discovering launchable applications is its core function. Before distribution, review the current Google Play package-visibility policy and provide the required Play Console declaration if distributing through Play.
+## Architecture
 
-## Known limitations
-
-- No `AppWidgetHost` yet, so widgets cannot be added or resized.
-- No drag-and-drop workspace editor, folders, or multiple workspace pages yet.
-- Home shortcuts are currently the first six alphabetically sorted launchable apps, not user-customisable pins.
-- Search currently filters installed app labels; contextual actions and contacts are not implemented.
-- The view uses a 393 × 852 design coordinate space and scales to the available viewport; device-specific layout, font scale, landscape and cutout testing are still required.
-- Wallpaper rendering, navigation gesture interactions, app launch transitions, and target-API behaviour require on-device validation. The initial source-generation environment did not have Android SDK Build Tools installed; GitHub Actions is configured to perform an SDK-backed build after the source is pushed.
-
-## Roadmap
-
-1. Stabilise HOME role, app catalogue, drawer/search, wallpaper, insets and app lifecycle.
-2. Add persistent workspace pages, editable hotseat, drag/drop, folders and uninstall-safe layout restoration.
-3. Add native widgets with `AppWidgetHost` / `AppWidgetHostView`, resizing and widget permissions.
-4. Add shortcuts, work-profile handling, predictive back and accessibility/reduced-motion settings.
-5. Integrate licensed typography assets and refine motion to a spring/velocity-driven system.
-6. Add backup/restore, release signing, QA matrix and Play policy review.
+\`\`\`text
+LauncherActivity
+├── LauncherApps / UserManager
+│   ├── profile-aware app catalogue
+│   ├── package and shortcut callbacks
+│   ├── startMainActivity / startShortcut
+│   └── pinShortcuts
+├── AppWidgetManager / AppWidgetHost
+│   ├── bind and configure
+│   ├── host AppWidgetHostView
+│   └── restore persisted widget IDs
+├── WorkspaceStore (SQLiteOpenHelper)
+│   ├── pages, pins and dock slots
+│   ├── folders and shortcuts
+│   └── backup / restore JSON
+└── TesseraHomeView
+    ├── wallpaper-first home surface
+    ├── horizontal workspace pager
+    ├── drag/reposition and folder actions
+    ├── searchable app drawer
+    └── widget hosting containers
+\`\`\`
 
 ## Source provenance
 
-The project was bootstrapped from the uploaded `Tessera.apk` and the agreed design direction. The APK contains compiled DEX and assets, not the original source tree. This source is a maintainable reimplementation, not a byte-for-byte restoration of the app that produced that APK.
+The original \`Tessera.apk\` contained compiled DEX and resources, not the original source tree. This repository is a clean, maintainable reimplementation informed by the uploaded APK's static inventory and the approved visual direction. It is not presented as an exact decompilation.
 
-See [docs/original-apk-inventory.md](docs/original-apk-inventory.md) for the static prototype inventory and [docs/design-reference.md](docs/design-reference.md) for the Figma design direction.
+See [docs/original-apk-inventory.md](docs/original-apk-inventory.md) and [docs/design-reference.md](docs/design-reference.md).
