@@ -21,7 +21,7 @@ import java.util.Locale;
 
 /** Wallpaper-first, gesture-driven native launcher canvas. */
 public final class TesseraHomeView extends View {
-    public interface Callbacks { void onSearchRequested(); void onDefaultHomeRequested(); void onAppSelected(LauncherApp a); void onAppLongPressed(LauncherApp a); }
+    public interface Callbacks { void onLauncherSearchRequested(); void onDefaultHomeRequested(); void onAppSelected(LauncherApp a); void onAppLongPressed(LauncherApp a); }
     private static final float W=393f,H=852f;
     private static final int IVORY=0xfff7f2e1,GOLD=0xffe6c75c,MINT=0xff7ac7a1,MUTED=0xffb1c3b7;
     private static final int[] COLORS={0xff74c29d,0xffe4c362,0xffda754a,0xff9175b5,0xff699ac2,0xffafbcad};
@@ -126,7 +126,7 @@ public final class TesseraHomeView extends View {
     private void tap(float x,float y){
         if(isDrawerOpen()){
             if(x>320&&y<112){closeDrawer();return;}
-            if(y>=186&&y<=254){callbacks.onSearchRequested();return;}
+            if(y>=186&&y<=254){callbacks.onLauncherSearchRequested();return;}
             if(y>=320&&y<=800){int col=Math.max(0,Math.min(3,(int)((x-35)/88)));int row=Math.max(0,(int)((y-333)/105));int i=scrollRows*4+row*4+col;if(i>=0&&i<shown.size())callbacks.onAppSelected(shown.get(i));}
             return;
         }
