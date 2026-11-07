@@ -28,6 +28,15 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug
       - name: Run Android lint
         run: gradle --no-daemon :app:lintDebug
+      - name: Run Android instrumentation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: Pixel_2
+          disable-animations: true
+          script: gradle --no-daemon :app:connectedDebugAndroidTest
       - name: Audit APK (three verification passes)
         shell: bash
         run: |
