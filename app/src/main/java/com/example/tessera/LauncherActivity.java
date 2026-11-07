@@ -73,6 +73,7 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     private int pendingWidgetId=-1;
     private boolean callbackRegistered;
     private boolean reducedMotion;
+    private volatile boolean activityDestroyed;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -131,6 +132,7 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     }
 
     @Override protected void onDestroy() {
+        activityDestroyed=true;
         unregisterPackageCallback();
         if(workspaceStore!=null)workspaceStore.close();
         super.onDestroy();
@@ -184,18 +186,22 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
                 }
                 Collections.sort(result,Comparator.comparing(a->a.label.toLowerCase(Locale.getDefault())));
             } catch(SecurityException|IllegalStateException e) {
-                runOnUiThread(()->Toast.makeText(this,"Tessera could not read the app catalogue.",Toast.LENGTH_LONG).show());
+                runOnUiThread(()->{
+                if(!activityDestroyed&&!isFinishing())
+                    Toast.makeText(this,"Tessera could not read the app catalogue.",Toast.LENGTH_LONG).show();
+            });
             }
             runOnUiThread(()->{
+                if(activityDestroyed||isFinishing()||workspaceStore==null)return;
                 installedApps=result;
-                if(workspaceStore!=null)workspaceStore.seedIfEmpty(installedApps);
+                workspaceStore.seedIfEmpty(installedApps);
                 renderWorkspace();
             });
         },"Tessera-AppCatalog").start();
     }
 
     private void renderWorkspace() {
-        if(homeView==null||workspaceStore==null)return;
+        if(activityDestroyed||homeView==null||workspaceStore==null)return;
         List<WorkspaceItem> items=workspaceStore.all();
         HashMap<Integer,View> activeWidgets=new HashMap<>();
         for(WorkspaceItem item:items) if(WorkspaceItem.WIDGET.equals(item.type)) {

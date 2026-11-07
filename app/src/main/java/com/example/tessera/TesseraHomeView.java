@@ -69,6 +69,7 @@ public final class TesseraHomeView extends LinearLayout {
     private int pageCount=1,currentPage=0;
     private boolean defaultHome,reducedMotion;
     private Dialog drawerDialog;
+    private final Runnable clockTicker=()->updateClock();
 
     public TesseraHomeView(Context c,Callbacks cb) {
         super(c);
@@ -139,7 +140,17 @@ public final class TesseraHomeView extends LinearLayout {
             currentPage=Math.max(0,Math.min(pageCount-1,Math.round((float)sx/w)));
             updateIndicator();
         });
+    }
+
+    @Override protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
         updateClock();
+    }
+
+    @Override protected void onDetachedFromWindow() {
+        removeCallbacks(clockTicker);
+        if(drawerDialog!=null&&drawerDialog.isShowing())drawerDialog.dismiss();
+        super.onDetachedFromWindow();
     }
 
     public void render(List<WorkspaceItem> saved,List<LauncherApp> installed,int pages,
@@ -188,7 +199,11 @@ public final class TesseraHomeView extends LinearLayout {
         }
         dock.setOnDragListener((v,e)->handleDrop(v,e, -1,true));
         updateIndicator();
-        pager.post(()->pager.scrollTo(currentPage*pager.getWidth(),0));
+        pager.post(()->{
+            int target=currentPage*pager.getWidth();
+            if(reducedMotion)pager.scrollTo(target,0);
+            else pager.smoothScrollTo(target,0);
+        });
     }
 
     private void addWorkspaceChild(GridLayout grid,WorkspaceItem item) {
@@ -443,7 +458,8 @@ public final class TesseraHomeView extends LinearLayout {
 
     private void updateClock() {
         clock.setText(new SimpleDateFormat("h:mm  ·  EEE, d MMM",Locale.getDefault()).format(new Date()));
-        postDelayed(this::updateClock,60000);
+        removeCallbacks(clockTicker);
+        if(isAttachedToWindow())postDelayed(clockTicker,60000);
     }
     private void updateIndicator(){pageIndicator.setText((currentPage+1)+" / "+pageCount);}
     private TextView label(String text,float size,int color,Typeface face) {
