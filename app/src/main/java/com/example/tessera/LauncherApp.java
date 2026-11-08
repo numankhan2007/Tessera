@@ -2,6 +2,7 @@ package com.example.tessera;
 
 import android.content.ComponentName;
 import android.content.pm.LauncherActivityInfo;
+import android.content.pm.ApplicationInfo;
 import android.graphics.drawable.Drawable;
 import android.os.UserHandle;
 
@@ -13,6 +14,7 @@ public final class LauncherApp {
     public final Drawable icon;
     public final String packageName;
     public final long userSerial;
+    public final int category;
 
     public LauncherApp(LauncherActivityInfo info) { this(info,info.getUser().hashCode()); }
 
@@ -23,6 +25,8 @@ public final class LauncherApp {
         icon=info.getBadgedIcon(0);
         packageName=componentName.getPackageName();
         userSerial=serial;
+        ApplicationInfo application=info.getApplicationInfo();
+        category=application==null?ApplicationInfo.CATEGORY_UNDEFINED:application.category;
     }
 
     public String stableKey() {

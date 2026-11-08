@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 — Intelligent workspace and kinetic atmosphere
+
+- Added a low-energy animated aurora atmosphere with floating motes; it stops when the view is detached and respects Reduce Motion.
+- Refined the home hierarchy, typography, workspace density and icon proportions for phone-sized screens.
+- Added spring-like workspace entrances, tile press response and subtle horizontal page parallax.
+- Added app-library quick access based only on the user's own dock favourites.
+- Added native app-category filters sourced from Android application metadata: Social, Work, Media, Games and Other.
+- Added alphabetical letter dividers, a cleaner empty state and improved app-library presentation.
+- Added Android 15 visual-regression captures for the home screen and app library; CI uploads the actual emulator screenshots.
+
 ## 0.3.0 — Obsidian Garden visual redesign
 
 - Rebuilt the home hierarchy with a compact brand/date bar, clear headline, understated workspace sections and a calmer dock.

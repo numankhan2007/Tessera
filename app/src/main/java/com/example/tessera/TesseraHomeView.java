@@ -5,8 +5,13 @@ import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.ClipData;
 import android.content.res.ColorStateList;
+import android.content.pm.ApplicationInfo;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RadialGradient;
+import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.Drawable;
@@ -19,6 +24,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -60,9 +66,12 @@ public final class TesseraHomeView extends LinearLayout {
     }
 
     // Obsidian Garden palette: near-black canvas, deep pine surfaces, warm ivory and restrained brass.
-    private static final int BG=0xff0b120f, PANEL=0xff14231c, SURFACE=0xff192b22,
-            SURFACE_RAISED=0xff20372b, BORDER=0xff345443, IVORY=0xfff4f1e6,
-            GOLD=0xffe6c75c, MINT=0xff9bd8b7, MUTED=0xffaabbb1;
+    // Obsidian Garden: ink canvas, evergreen glass, warm pearl and soft aurora.
+    private static final int BG=0xff070d0a, PANEL=0xff101b16, SURFACE=0xff17251d,
+            SURFACE_RAISED=0xff20362a, BORDER=0xff385746, IVORY=0xfff5f2e8,
+            GOLD=0xffe7cc75, MINT=0xff9fe1bd, MUTED=0xff9fb2a5;
+    private static final int GROUP_ALL=-1, GROUP_SOCIAL=1, GROUP_WORK=2,
+            GROUP_MEDIA=3, GROUP_GAMES=4, GROUP_OTHER=5;
     private final Context context;
     private final Callbacks callbacks;
     private final LinearLayout pageStrip;
@@ -78,51 +87,77 @@ public final class TesseraHomeView extends LinearLayout {
     private boolean defaultHome,reducedMotion;
     private Dialog drawerDialog;
     private final Runnable clockTicker=()->updateClock();
+    private final Paint ambientPaint=new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint motePaint=new Paint(Paint.ANTI_ALIAS_FLAG);
+    private RadialGradient auroraOne,auroraTwo;
+    private long ambientEpoch=SystemClock.uptimeMillis();
+    private float scrollProgress;
 
     public TesseraHomeView(Context c,Callbacks cb) {
         super(c);
         context=c;callbacks=cb;
         setOrientation(VERTICAL);
-        setPadding(dp(20),dp(10),dp(20),dp(10));
+        setPadding(dp(18),dp(8),dp(18),dp(8));
         setBackgroundColor(Color.TRANSPARENT);
         setFocusableInTouchMode(true);
         setClipChildren(false);
+        setWillNotDraw(false);
 
-        LinearLayout brandRow=new LinearLayout(c);
-        brandRow.setGravity(Gravity.CENTER_VERTICAL);
-        TextView brand=label("T E S S E R A",11,MINT,
-                Typeface.create("sans-serif-medium",Typeface.NORMAL));
-        brand.setLetterSpacing(.12f);
-        brandRow.addView(brand,new LayoutParams(0,dp(40),1f));
-        clock=label("",13,IVORY,Typeface.create("sans-serif",Typeface.NORMAL));
-        brandRow.addView(clock,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(40)));
-        TextView add=button("＋",GOLD);
-        add.setTextSize(23);
-        add.setBackground(rippleSurface(SURFACE,0x559bd8b7,dp(18),BORDER));
-        add.setContentDescription("Workspace options");
-        add.setOnClickListener(v->showWorkspaceMenu(v));
-        LinearLayout.LayoutParams addLp=new LayoutParams(dp(46),dp(46));
-        addLp.leftMargin=dp(12);
-        brandRow.addView(add,addLp);
-        addView(brandRow,new LayoutParams(-1,dp(50)));
+        LinearLayout masthead=new LinearLayout(c);
+        masthead.setGravity(Gravity.CENTER_VERTICAL);
+        TextView brand=label("T E S S E R A",11,MINT,Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        brand.setLetterSpacing(.16f);
+        masthead.addView(brand,new LayoutParams(0,dp(40),1f));
+        clock=label("",12,IVORY,Typeface.create("sans-serif",Typeface.NORMAL));
+        masthead.addView(clock,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(40)));
+        TextView options=button("＋",GOLD);
+        options.setTextSize(23);
+        options.setBackground(rippleSurface(SURFACE,0x5539b87c,dp(17),BORDER));
+        options.setContentDescription("Workspace and launcher settings");
+        options.setOnClickListener(v->showWorkspaceMenu(v));
+        LayoutParams optionsLp=new LayoutParams(dp(44),dp(44));
+        optionsLp.leftMargin=dp(11);
+        masthead.addView(options,optionsLp);
+        addView(masthead,new LayoutParams(-1,dp(46)));
 
-        TextView title=label("Make room for wonder.",25,IVORY,
+        LinearLayout hero=new LinearLayout(c);
+        hero.setGravity(Gravity.CENTER_VERTICAL);
+        hero.setOrientation(HORIZONTAL);
+        hero.setPadding(dp(2),dp(1),dp(3),0);
+        TextView title=label("Your space.\nYour own rhythm.",25,IVORY,
+                Typeface.create("serif",Typeface.ITALIC));
+        title.setLineSpacing(dp(1),1f);
+        hero.addView(title,new LayoutParams(0,dp(61),1f));
+        TextView orbit=label("✧",42,GOLD,Typeface.create("serif",Typeface.NORMAL));
+        orbit.setGravity(Gravity.CENTER);
+        orbit.setBackground(rippleSurface(0x221a3527,0x2239b87c,dp(30),0x333e6650));
+        orbit.setElevation(dp(4));
+        LayoutParams orbitLp=new LayoutParams(dp(58),dp(58));
+        orbitLp.leftMargin=dp(10);
+        hero.addView(orbit,orbitLp);
+        if(!reducedMotion) {
+            orbit.setRotation(-10f);
+            orbit.animate().rotation(10f).setDuration(5200).setInterpolator(new DecelerateInterpolator())
+                    .withEndAction(()->orbit.animate().rotation(-10f).setDuration(5200).start()).start();
+        }
+        LayoutParams heroLp=new LayoutParams(-1,dp(66));
+        heroLp.topMargin=dp(2);
+        addView(hero,heroLp);
+
+        TextView subtitle=label("A CALMER PLACE TO LAND",9,GOLD,
                 Typeface.create("sans-serif-medium",Typeface.NORMAL));
-        title.setPadding(dp(2),dp(5),0,0);
-        addView(title,new LayoutParams(-1,dp(42)));
-        TextView subtitle=label("YOUR SPACE, COMPOSED",10,GOLD,
-                Typeface.create("sans-serif-medium",Typeface.NORMAL));
-        subtitle.setLetterSpacing(.2f);
+        subtitle.setLetterSpacing(.22f);
         subtitle.setPadding(dp(3),0,0,0);
-        addView(subtitle,new LayoutParams(-1,dp(25)));
+        addView(subtitle,new LayoutParams(-1,dp(21)));
 
         if(!defaultHome) {
-            homeHint=button("Set Tessera as your Home app   ↗",MINT);
-            homeHint.setTextSize(12);
-            homeHint.setBackground(rippleSurface(SURFACE,0x449bd8b7,dp(14),BORDER));
+            homeHint=button("SET TESSERA AS HOME   ↗",MINT);
+            homeHint.setTextSize(10);
+            homeHint.setLetterSpacing(.06f);
+            homeHint.setBackground(rippleSurface(SURFACE,0x4439b87c,dp(13),BORDER));
             homeHint.setOnClickListener(v->callbacks.onSetHomeRequested());
-            LayoutParams hintLp=new LayoutParams(-1,dp(40));
-            hintLp.topMargin=dp(4);
+            LayoutParams hintLp=new LayoutParams(-1,dp(34));
+            hintLp.topMargin=dp(3);
             addView(homeHint,hintLp);
         } else homeHint=null;
 
@@ -135,14 +170,14 @@ public final class TesseraHomeView extends LinearLayout {
         pageStrip.setClipChildren(false);
         pager.addView(pageStrip,new HorizontalScrollView.LayoutParams(-2,-1));
         LayoutParams pagerLp=new LayoutParams(-1,0,1f);
-        pagerLp.topMargin=dp(4);
+        pagerLp.topMargin=dp(1);
         addView(pager,pagerLp);
 
-        pageIndicator=label("01  /  01",10,MUTED,
+        pageIndicator=label("01  /  01",9,MUTED,
                 Typeface.create("sans-serif-medium",Typeface.NORMAL));
         pageIndicator.setGravity(Gravity.CENTER);
-        pageIndicator.setLetterSpacing(.12f);
-        addView(pageIndicator,new LayoutParams(-1,dp(24)));
+        pageIndicator.setLetterSpacing(.18f);
+        addView(pageIndicator,new LayoutParams(-1,dp(21)));
 
         LinearLayout bottom=new LinearLayout(c);
         bottom.setGravity(Gravity.CENTER_VERTICAL);
@@ -150,39 +185,80 @@ public final class TesseraHomeView extends LinearLayout {
         dock=new LinearLayout(c);
         dock.setGravity(Gravity.CENTER);
         dock.setOrientation(HORIZONTAL);
-        dock.setPadding(dp(6),dp(5),dp(6),dp(5));
-        dock.setBackground(rippleSurface(PANEL,0x223bdc9b,dp(24),BORDER));
-        dock.setElevation(dp(8));
+        dock.setPadding(dp(5),dp(4),dp(5),dp(4));
+        dock.setBackground(rippleSurface(PANEL,0x2239b87c,dp(22),BORDER));
+        dock.setElevation(dp(9));
         dock.setClipToOutline(true);
-        bottom.addView(dock,new LayoutParams(0,dp(76),1f));
+        bottom.addView(dock,new LayoutParams(0,dp(68),1f));
         TextView all=button("⌕",GOLD);
-        all.setTextSize(28);
-        all.setContentDescription("Open app drawer");
-        all.setBackground(rippleSurface(SURFACE,0x559bd8b7,dp(18),BORDER));
+        all.setTextSize(27);
+        all.setContentDescription("Open app library");
+        all.setBackground(rippleSurface(SURFACE,0x5539b87c,dp(17),BORDER));
         all.setOnClickListener(v->openDrawer());
-        LinearLayout.LayoutParams allLp=new LayoutParams(dp(58),dp(58));
-        allLp.leftMargin=dp(10);
+        LinearLayout.LayoutParams allLp=new LayoutParams(dp(56),dp(56));
+        allLp.leftMargin=dp(9);
         bottom.addView(all,allLp);
-        LayoutParams bottomLp=new LayoutParams(-1,dp(80));
-        bottomLp.topMargin=dp(2);
+        LayoutParams bottomLp=new LayoutParams(-1,dp(72));
+        bottomLp.topMargin=dp(1);
         addView(bottom,bottomLp);
 
         pager.setOnScrollChangeListener((View v,int sx,int sy,int ox,int oy)->{
             int w=Math.max(1,pager.getWidth());
-            int nextPage=Math.max(0,Math.min(pageCount-1,Math.round((float)sx/w)));
+            scrollProgress=Math.max(0f,Math.min(pageCount-1,(float)sx/w));
+            int nextPage=Math.max(0,Math.min(pageCount-1,Math.round(scrollProgress)));
             if(nextPage!=currentPage) {
                 currentPage=nextPage;
                 callbacks.onCurrentPageChanged(currentPage);
-                pageIndicator.setAlpha(.55f);
-                pageIndicator.animate().alpha(1f).setDuration(220).start();
+                pageIndicator.setAlpha(.5f);
+                pageIndicator.animate().alpha(1f).setDuration(240).start();
             }
+            updatePageParallax();
             updateIndicator();
         });
     }
 
+    @Override protected void onSizeChanged(int w,int h,int oldw,int oldh) {
+        super.onSizeChanged(w,h,oldw,oldh);
+        auroraOne=new RadialGradient(w*.84f,h*.23f,dp(260),
+                new int[]{0x244eaa78,0x10285e45,0x00000000},null,Shader.TileMode.CLAMP);
+        auroraTwo=new RadialGradient(w*.10f,h*.72f,dp(235),
+                new int[]{0x183e8669,0x0d244936,0x00000000},null,Shader.TileMode.CLAMP);
+    }
+
+    @Override protected void dispatchDraw(Canvas canvas) {
+        drawAtmosphere(canvas);
+        super.dispatchDraw(canvas);
+        if(isAttachedToWindow()&&!reducedMotion)postInvalidateDelayed(48);
+    }
+
+    private void drawAtmosphere(Canvas canvas) {
+        if(auroraOne==null||auroraTwo==null)return;
+        float phase=(SystemClock.uptimeMillis()-ambientEpoch)/1000f;
+        float pulse=.78f+.12f*(float)Math.sin(phase*.48f);
+        ambientPaint.setShader(auroraOne);
+        ambientPaint.setAlpha(Math.round(255*pulse));
+        canvas.drawCircle(getWidth()*.84f,getHeight()*.23f,
+                dp(260)*(1f+.025f*(float)Math.sin(phase*.31f)),ambientPaint);
+        ambientPaint.setShader(auroraTwo);
+        ambientPaint.setAlpha(Math.round(210*pulse));
+        canvas.drawCircle(getWidth()*.10f,getHeight()*.72f,
+                dp(235)*(1f+.035f*(float)Math.cos(phase*.27f)),ambientPaint);
+        ambientPaint.setShader(null);
+        motePaint.setStyle(Paint.Style.FILL);
+        for(int i=0;i<7;i++) {
+            float x=(.12f+((i*37)%83)/100f)*getWidth();
+            float y=(.12f+((i*29)%74)/100f)*getHeight();
+            float twinkle=.25f+.35f*(.5f+.5f*(float)Math.sin(phase*.72f+i*1.7f));
+            motePaint.setColor(Color.argb(Math.round(255*twinkle),180,221,190));
+            canvas.drawCircle(x,y,dp(i%3==0?1.5f:1f),motePaint);
+        }
+    }
+
     @Override protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        ambientEpoch=SystemClock.uptimeMillis();
         updateClock();
+        if(!reducedMotion)postInvalidateOnAnimation();
     }
 
     @Override protected void onDetachedFromWindow() {
@@ -197,63 +273,62 @@ public final class TesseraHomeView extends LinearLayout {
         apps=installed==null?new ArrayList<>():new ArrayList<>(installed);
         pageCount=Math.max(1,pages);
         currentPage=Math.max(0,Math.min(pageCount-1,currentPage));
+        scrollProgress=currentPage;
         defaultHome=isDefault;widgetViews=widgets;reducedMotion=reduceMotion;
         if(homeHint!=null)homeHint.setVisibility(defaultHome?GONE:VISIBLE);
         pageStrip.removeAllViews();dock.removeAllViews();
+
         int width=Math.max(dp(300),getResources().getDisplayMetrics().widthPixels-getPaddingLeft()-getPaddingRight());
         for(int page=0;page<pageCount;page++) {
             final int pageIndex=page;
             LinearLayout column=new LinearLayout(context);
             column.setOrientation(VERTICAL);
-            column.setPadding(dp(2),dp(7),dp(2),dp(6));
+            column.setPadding(dp(2),dp(3),dp(2),0);
             column.setClipChildren(false);
             pageStrip.addView(column,new LayoutParams(width,LayoutParams.MATCH_PARENT));
 
             LinearLayout section=new LinearLayout(context);
             section.setGravity(Gravity.CENTER_VERTICAL);
-            TextView pageTitle=label(String.format(Locale.getDefault(),"SPACE  %02d",page+1),10,MUTED,
+            TextView pageTitle=label(String.format(Locale.getDefault(),"SPACE  %02d",page+1),9,MUTED,
                     Typeface.create("sans-serif-medium",Typeface.NORMAL));
-            pageTitle.setLetterSpacing(.16f);
-            section.addView(pageTitle,new LayoutParams(0,dp(28),1f));
+            pageTitle.setLetterSpacing(.19f);
+            section.addView(pageTitle,new LayoutParams(0,dp(25),1f));
             int appCount=0;
             for(WorkspaceItem item:items)if(item.page==page)appCount++;
-            TextView count=label(appCount+" ITEMS",9,0xff82998c,
+            TextView count=label(appCount==0?"READY FOR YOU":appCount+" PLACED",8,0xff789184,
                     Typeface.create("sans-serif-medium",Typeface.NORMAL));
-            count.setLetterSpacing(.1f);
-            section.addView(count,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(28)));
-            column.addView(section,new LayoutParams(-1,dp(30)));
+            count.setLetterSpacing(.11f);
+            section.addView(count,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(25)));
+            column.addView(section,new LayoutParams(-1,dp(26)));
 
-            GridLayout grid=new GridLayout(context);
-            grid.setColumnCount(4);grid.setRowCount(6);
-            grid.setUseDefaultMargins(false);
-            grid.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
-            grid.setColumnOrderPreserved(false);
-            grid.setBackground(round(0x1b1c3328,dp(26),0x253d5b48));
-            grid.setPadding(dp(3),dp(7),dp(3),dp(5));
-            grid.setClipChildren(false);
-            grid.setTag(page);
-            grid.setOnDragListener((v,e)->handleDrop(v,e,pageIndex,false));
-            column.addView(grid,new LayoutParams(-1,dp(510)));
-            for(WorkspaceItem item:items)if(item.page==page)addWorkspaceChild(grid,item);
-
-            TextView addSpace=label(page==pageCount-1?"＋  CREATE A NEW SPACE":"SWIPE TO EXPLORE",9,
-                    page==pageCount-1?MINT:0xff6f887a,
-                    Typeface.create("sans-serif-medium",Typeface.NORMAL));
-            addSpace.setGravity(Gravity.CENTER);
-            addSpace.setLetterSpacing(.12f);
-            addSpace.setBackground(rippleSurface(0x0014231c,0x223bdc9b,dp(14),0x223d5b48));
-            addSpace.setOnClickListener(v->{if(pageIndex==pageCount-1)callbacks.onAddPageRequested();});
-            column.addView(addSpace,new LayoutParams(-1,dp(34)));
-            animateIn(column,page*55L);
+            List<WorkspaceItem> pageItems=new ArrayList<>();
+            for(WorkspaceItem item:items)if(item.page==page)pageItems.add(item);
+            if(pageItems.isEmpty()) {
+                column.addView(createEmptySpace(pageIndex),new LayoutParams(-1,dp(432)));
+            } else {
+                GridLayout grid=new GridLayout(context);
+                grid.setColumnCount(4);grid.setRowCount(6);
+                grid.setUseDefaultMargins(false);
+                grid.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
+                grid.setColumnOrderPreserved(false);
+                grid.setBackground(round(0x101b3528,dp(25),0x1e52715b));
+                grid.setPadding(dp(2),dp(3),dp(2),dp(3));
+                grid.setClipChildren(false);
+                grid.setTag(page);
+                grid.setOnDragListener((v,e)->handleDrop(v,e,pageIndex,false));
+                column.addView(grid,new LayoutParams(-1,dp(438)));
+                for(WorkspaceItem item:pageItems)addWorkspaceChild(grid,item);
+            }
+            animateIn(column,page*42L);
         }
 
         List<WorkspaceItem> dockItems=new ArrayList<>();
         for(WorkspaceItem i:items)if(i.page==-1)dockItems.add(i);
         for(WorkspaceItem item:dockItems)addDockChild(item);
         if(dockItems.isEmpty()) {
-            TextView empty=label("＋   PIN YOUR FAVOURITES",9,MUTED,
+            TextView empty=label("＋   PIN YOUR FAVOURITES",8,MUTED,
                     Typeface.create("sans-serif-medium",Typeface.NORMAL));
-            empty.setLetterSpacing(.08f);
+            empty.setLetterSpacing(.13f);
             empty.setGravity(Gravity.CENTER);
             dock.addView(empty,new LayoutParams(-1,-1));
         }
@@ -263,11 +338,52 @@ public final class TesseraHomeView extends LinearLayout {
             int target=currentPage*pager.getWidth();
             if(reducedMotion)pager.scrollTo(target,0);
             else pager.smoothScrollTo(target,0);
+            updatePageParallax();
         });
         if(!reducedMotion) {
-            dock.setAlpha(0f);dock.setTranslationY(dp(12));
-            dock.animate().alpha(1f).translationY(0).setStartDelay(90)
-                    .setDuration(420).setInterpolator(new DecelerateInterpolator(1.6f)).start();
+            dock.setAlpha(.7f);dock.setTranslationY(dp(12));
+            dock.animate().alpha(1f).translationY(0).setStartDelay(110)
+                    .setDuration(520).setInterpolator(new DecelerateInterpolator(1.7f)).start();
+        }
+        postInvalidateOnAnimation();
+    }
+
+    private View createEmptySpace(int page) {
+        LinearLayout empty=new LinearLayout(context);
+        empty.setOrientation(VERTICAL);
+        empty.setGravity(Gravity.CENTER);
+        empty.setBackground(round(0x121d3025,dp(26),0x22466b54));
+        TextView glyph=label("✧",35,GOLD,Typeface.create("serif",Typeface.NORMAL));
+        glyph.setGravity(Gravity.CENTER);
+        empty.addView(glyph,new LayoutParams(-1,dp(62)));
+        TextView title=label("A little room to begin.",16,IVORY,
+                Typeface.create("serif",Typeface.ITALIC));
+        title.setGravity(Gravity.CENTER);
+        empty.addView(title,new LayoutParams(-1,dp(30)));
+        TextView detail=label("Bring your favourite apps into this space.",10,MUTED,
+                Typeface.create("sans-serif",Typeface.NORMAL));
+        detail.setGravity(Gravity.CENTER);
+        empty.addView(detail,new LayoutParams(-1,dp(28)));
+        TextView action=button("EXPLORE APPS   ↗",MINT);
+        action.setTextSize(9);
+        action.setLetterSpacing(.13f);
+        LinearLayout.LayoutParams actionLp=new LayoutParams(dp(176),dp(38));
+        actionLp.topMargin=dp(13);
+        empty.addView(action,actionLp);
+        action.setOnClickListener(v->openDrawer());
+        animateIn(empty,page*60L);
+        return empty;
+    }
+
+    private void updatePageParallax() {
+        if(pageStrip==null||pager==null)return;
+        for(int i=0;i<pageStrip.getChildCount();i++) {
+            View page=pageStrip.getChildAt(i);
+            float distance=i-scrollProgress;
+            float absolute=Math.min(1f,Math.abs(distance));
+            page.setTranslationX(-distance*dp(10));
+            page.setScaleX(1f-absolute*.018f);
+            page.setAlpha(1f-absolute*.12f);
         }
     }
 
@@ -293,7 +409,7 @@ public final class TesseraHomeView extends LinearLayout {
         }
         GridLayout.LayoutParams lp=new GridLayout.LayoutParams(
                 GridLayout.spec(y,sy),GridLayout.spec(x,sx,1f));
-        lp.width=0;lp.height=dp(82*sy);lp.setMargins(dp(2),dp(2),dp(2),dp(2));
+        lp.width=0;lp.height=dp(72*sy);lp.setMargins(dp(1),dp(1),dp(1),dp(1));
         grid.addView(child,lp);
         animateIn(child,Math.min(360,(grid.getChildCount()-1)*28L));
     }
@@ -301,35 +417,37 @@ public final class TesseraHomeView extends LinearLayout {
     private View createTile(WorkspaceItem item) {
         LinearLayout tile=new LinearLayout(context);
         tile.setOrientation(VERTICAL);tile.setGravity(Gravity.CENTER);
-        tile.setPadding(dp(2),dp(4),dp(2),dp(2));
-        tile.setBackground(rippleSurface(0x0014231c,0x334bd68e,dp(17),0x00000000));
+        tile.setPadding(dp(1),0,dp(1),0);
+        tile.setBackground(rippleSurface(0x0014231c,0x2239b87c,dp(15),0x00000000));
         tile.setClipChildren(false);
         FrameLayout iconFrame=new FrameLayout(context);
-        iconFrame.setBackground(round(SURFACE,dp(18),BORDER));
+        iconFrame.setBackground(round(SURFACE_RAISED,dp(17),0x34516f5b));
         iconFrame.setElevation(dp(3));
         ImageView icon=new ImageView(context);
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         Drawable drawable=findIcon(item);
         if(drawable!=null)icon.setImageDrawable(drawable);
         else icon.setImageResource(android.R.drawable.sym_def_app_icon);
-        FrameLayout.LayoutParams ip=new FrameLayout.LayoutParams(dp(46),dp(46),Gravity.CENTER);
+        FrameLayout.LayoutParams ip=new FrameLayout.LayoutParams(dp(47),dp(47),Gravity.CENTER);
         iconFrame.addView(icon,ip);
-        tile.addView(iconFrame,new LayoutParams(dp(60),dp(60)));
+        tile.addView(iconFrame,new LayoutParams(dp(56),dp(56)));
         String title=WorkspaceItem.FOLDER.equals(item.type)?"Folder":item.title;
-        TextView name=label(title==null?"App":title,11,IVORY,
+        TextView name=label(title==null?"App":title,9.5f,IVORY,
                 Typeface.create("sans-serif-medium",Typeface.NORMAL));
         name.setGravity(Gravity.CENTER);
-        name.setMaxLines(2);name.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        name.setPadding(dp(1),dp(2),dp(1),0);
-        tile.addView(name,new LayoutParams(-1,dp(28)));
+        name.setMaxLines(1);name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        name.setPadding(0,dp(1),0,0);
+        tile.addView(name,new LayoutParams(-1,dp(16)));
         tile.setContentDescription(title==null?"Workspace item":title);
         tile.setOnClickListener(v->{
             if(!reducedMotion) {
-                v.animate().scaleX(.94f).scaleY(.94f).setDuration(90).withEndAction(()->{
-                    v.animate().scaleX(1f).scaleY(1f).setDuration(180)
-                            .setInterpolator(new DecelerateInterpolator()).start();
-                    callbacks.onLaunchItem(item);
-                }).start();
+                v.animate().scaleX(.92f).scaleY(.92f).setDuration(110)
+                        .setInterpolator(new DecelerateInterpolator())
+                        .withEndAction(()->{
+                            v.animate().scaleX(1f).scaleY(1f).setDuration(230)
+                                    .setInterpolator(new OvershootInterpolator(.72f)).start();
+                            callbacks.onLaunchItem(item);
+                        }).start();
             } else callbacks.onLaunchItem(item);
         });
         tile.setOnLongClickListener(v->{showItemMenu(item,v);return true;});
@@ -371,12 +489,12 @@ public final class TesseraHomeView extends LinearLayout {
         else icon.setImageResource(android.R.drawable.sym_def_app_icon);
         tile.addView(icon,new LayoutParams(dp(42),dp(42)));
         tile.setContentDescription(item.title==null?"Open application":item.title);
-        tile.setBackground(rippleSurface(0x0014231c,0x334bd68e,dp(16),0x00000000));
+        tile.setBackground(rippleSurface(0x0014231c,0x3339b87c,dp(16),0x00000000));
         tile.setOnClickListener(v->callbacks.onLaunchItem(item));
         tile.setOnLongClickListener(v->{showItemMenu(item,v);return true;});
         LayoutParams lp=new LayoutParams(0,-1,1f);
         dock.addView(tile,lp);
-        animateIn(tile,(dock.getChildCount()-1)*35L);
+        animateIn(tile,(dock.getChildCount()-1)*42L);
     }
 
     private boolean handleDrop(View view,android.view.DragEvent e,int page,boolean inDock) {
@@ -484,62 +602,60 @@ public final class TesseraHomeView extends LinearLayout {
         Dialog dialog=new Dialog(context);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setCancelable(true);
-
         LinearLayout root=new LinearLayout(context);
         root.setOrientation(VERTICAL);
-        root.setPadding(dp(22),dp(14),dp(22),dp(18));
-        root.setBackground(sheetBackground(BG,dp(30),BORDER));
-        root.setElevation(dp(18));
+        root.setPadding(dp(20),dp(11),dp(20),dp(15));
+        root.setBackground(sheetBackground(BG,dp(29),BORDER));
+        root.setElevation(dp(20));
         root.setClipToOutline(true);
 
         View handle=new View(context);
-        handle.setBackground(round(0xff476556,dp(6),0));
-        LinearLayout.LayoutParams handleLp=new LinearLayout.LayoutParams(dp(42),dp(4));
+        handle.setBackground(round(0xff50715d,dp(8),0));
+        LinearLayout.LayoutParams handleLp=new LinearLayout.LayoutParams(dp(40),dp(4));
         handleLp.gravity=Gravity.CENTER_HORIZONTAL;
-        handleLp.bottomMargin=dp(18);
+        handleLp.bottomMargin=dp(12);
         root.addView(handle,handleLp);
 
-        LinearLayout head=new LinearLayout(context);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        TextView eyebrow=label("APP LIBRARY",10,MINT,
+        LinearLayout top=new LinearLayout(context);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        TextView eyebrow=label("THE APP LIBRARY",9,MINT,
                 Typeface.create("sans-serif-medium",Typeface.NORMAL));
         eyebrow.setLetterSpacing(.2f);
-        head.addView(eyebrow,new LayoutParams(0,dp(30),1f));
-        TextView count=label(apps.size()+" INSTALLED",9,0xff839a8d,
+        top.addView(eyebrow,new LayoutParams(0,dp(26),1f));
+        TextView count=label(apps.size()+" APPS",8,0xff839b8d,
                 Typeface.create("sans-serif-medium",Typeface.NORMAL));
-        count.setLetterSpacing(.1f);
-        head.addView(count,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(30)));
+        count.setLetterSpacing(.15f);
+        top.addView(count,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(26)));
         TextView close=button("×",IVORY);
         close.setTextSize(22);
-        close.setBackground(rippleSurface(SURFACE,0x553bdc9b,dp(16),BORDER));
+        close.setBackground(rippleSurface(SURFACE,0x5539b87c,dp(15),BORDER));
         close.setContentDescription("Close app library");
         close.setOnClickListener(v->dismissDrawer(dialog,root,null));
-        LinearLayout.LayoutParams closeLp=new LayoutParams(dp(44),dp(44));
-        closeLp.leftMargin=dp(12);
-        head.addView(close,closeLp);
-        root.addView(head,new LayoutParams(-1,dp(48)));
+        LinearLayout.LayoutParams closeLp=new LayoutParams(dp(40),dp(40));
+        closeLp.leftMargin=dp(10);
+        top.addView(close,closeLp);
+        root.addView(top,new LayoutParams(-1,dp(42)));
 
-        TextView title=label("Everything, in its place.",23,IVORY,
-                Typeface.create("sans-serif-medium",Typeface.NORMAL));
-        title.setPadding(0,dp(3),0,0);
-        root.addView(title,new LayoutParams(-1,dp(42)));
-        TextView caption=label("Search, open or pin an app to your space.",11,MUTED,
+        TextView title=label("Find your next move.",23,IVORY,
+                Typeface.create("serif",Typeface.ITALIC));
+        root.addView(title,new LayoutParams(-1,dp(39)));
+        TextView caption=label("Your favourites first. Everything else, in its place.",9,MUTED,
                 Typeface.create("sans-serif",Typeface.NORMAL));
-        root.addView(caption,new LayoutParams(-1,dp(25)));
+        root.addView(caption,new LayoutParams(-1,dp(21)));
 
         EditText search=new EditText(context);
         search.setSingleLine(true);
         search.setTextColor(IVORY);
-        search.setHintTextColor(0xff81958a);
-        search.setHint("⌕   Search your apps");
-        search.setTextSize(14);
+        search.setHintTextColor(0xff81968a);
+        search.setHint("⌕   Search apps by name");
+        search.setTextSize(13);
         search.setTypeface(Typeface.create("sans-serif",Typeface.NORMAL));
-        search.setBackground(round(SURFACE,dp(17),BORDER));
-        search.setPadding(dp(17),0,dp(17),0);
+        search.setBackground(round(SURFACE,dp(16),BORDER));
+        search.setPadding(dp(15),0,dp(15),0);
         search.setSelectAllOnFocus(false);
-        LinearLayout.LayoutParams searchLp=new LayoutParams(-1,dp(54));
-        searchLp.topMargin=dp(12);
-        searchLp.bottomMargin=dp(10);
+        LinearLayout.LayoutParams searchLp=new LayoutParams(-1,dp(48));
+        searchLp.topMargin=dp(8);
+        searchLp.bottomMargin=dp(8);
         root.addView(search,searchLp);
 
         ScrollView scroller=new ScrollView(context);
@@ -548,57 +664,101 @@ public final class TesseraHomeView extends LinearLayout {
         LinearLayout rows=new LinearLayout(context);
         rows.setOrientation(VERTICAL);
         scroller.addView(rows,new ScrollView.LayoutParams(-1,-2));
+
+        final int[] selectedGroup={GROUP_ALL};
+        final List<TextView> chips=new ArrayList<>();
+        LinearLayout filterRow=new LinearLayout(context);
+        filterRow.setOrientation(HORIZONTAL);
+        filterRow.setGravity(Gravity.CENTER_VERTICAL);
+        String[] filterNames={"All","Social","Work","Media","Games","Other"};
+        int[] filterValues={GROUP_ALL,GROUP_SOCIAL,GROUP_WORK,GROUP_MEDIA,GROUP_GAMES,GROUP_OTHER};
+        for(int i=0;i<filterNames.length;i++) {
+            final int group=filterValues[i];
+            TextView chip=label(filterNames[i],9,group==GROUP_ALL?IVORY:MUTED,
+                    Typeface.create("sans-serif-medium",Typeface.NORMAL));
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(12),0,dp(12),0);
+            chip.setBackground(round(group==GROUP_ALL?SURFACE_RAISED:0x0014231c,dp(15),
+                    group==GROUP_ALL?BORDER:0x22466b54));
+            chip.setTag(group);
+            chip.setOnClickListener(v->{
+                selectedGroup[0]=group;
+                for(TextView option:chips) {
+                    int optionGroup=(Integer)option.getTag();
+                    boolean active=optionGroup==group;
+                    option.setTextColor(active?IVORY:MUTED);
+                    option.setBackground(round(active?SURFACE_RAISED:0x0014231c,dp(15),
+                            active?BORDER:0x22466b54));
+                }
+                refreshDrawerRows(search,rows,dialog,root,selectedGroup[0]);
+            });
+            chips.add(chip);
+            LinearLayout.LayoutParams chipLp=new LayoutParams(LayoutParams.WRAP_CONTENT,dp(32));
+            chipLp.rightMargin=dp(6);
+            filterRow.addView(chip,chipLp);
+        }
+        HorizontalScrollView filters=new HorizontalScrollView(context);
+        filters.setHorizontalScrollBarEnabled(false);
+        filters.addView(filterRow,new HorizontalScrollView.LayoutParams(-2,-1));
+        LinearLayout.LayoutParams filterLp=new LayoutParams(-1,dp(36));
+        filterLp.bottomMargin=dp(6);
+        root.addView(filters,filterLp);
+
+        LinearLayout quickHeading=new LinearLayout(context);
+        quickHeading.setGravity(Gravity.CENTER_VERTICAL);
+        TextView favouritesTitle=label("QUICK ACCESS",8,GOLD,
+                Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        favouritesTitle.setLetterSpacing(.18f);
+        quickHeading.addView(favouritesTitle,new LayoutParams(0,dp(22),1f));
+        TextView favouriteHint=label("FROM YOUR DOCK",7,0xff6e8c7a,
+                Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        favouriteHint.setLetterSpacing(.1f);
+        quickHeading.addView(favouriteHint,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(22)));
+        root.addView(quickHeading,new LayoutParams(-1,dp(22)));
+
+        HorizontalScrollView quickScroll=new HorizontalScrollView(context);
+        quickScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout quickRow=new LinearLayout(context);
+        quickRow.setOrientation(HORIZONTAL);
+        quickRow.setPadding(0,dp(1),0,dp(3));
+        int favouriteCount=0;
+        for(WorkspaceItem item:items) {
+            if(item.page!=-1||favouriteCount>=5)continue;
+            LauncherApp app=findApp(item);
+            if(app==null)continue;
+            LinearLayout favourite=new LinearLayout(context);
+            favourite.setOrientation(VERTICAL);
+            favourite.setGravity(Gravity.CENTER);
+            favourite.setBackground(rippleSurface(0x0014231c,0x2239b87c,dp(14),0x00000000));
+            ImageView icon=new ImageView(context);
+            icon.setImageDrawable(app.icon);
+            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            favourite.addView(icon,new LayoutParams(dp(36),dp(36)));
+            TextView appName=label(app.label,8,IVORY,Typeface.create("sans-serif-medium",Typeface.NORMAL));
+            appName.setGravity(Gravity.CENTER);
+            appName.setMaxLines(1);
+            appName.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            favourite.addView(appName,new LayoutParams(dp(62),dp(16)));
+            favourite.setContentDescription("Open favourite "+app.label);
+            favourite.setOnClickListener(v->dismissDrawer(dialog,root,()->callbacks.onAppSelected(app)));
+            LinearLayout.LayoutParams favLp=new LayoutParams(dp(68),dp(58));
+            favLp.rightMargin=dp(4);
+            quickRow.addView(favourite,favLp);
+            favouriteCount++;
+        }
+        quickScroll.addView(quickRow,new HorizontalScrollView.LayoutParams(-2,-1));
+        quickScroll.setVisibility(favouriteCount==0?GONE:VISIBLE);
+        root.addView(quickScroll,new LayoutParams(-1,dp(60)));
+
+        TextView allHeading=label("ALL APPS",8,MUTED,
+                Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        allHeading.setLetterSpacing(.18f);
+        LinearLayout.LayoutParams allHeadingLp=new LayoutParams(-1,dp(24));
+        allHeadingLp.topMargin=dp(2);
+        root.addView(allHeading,allHeadingLp);
         root.addView(scroller,new LayoutParams(-1,0,1f));
 
-        Runnable refresh=()->{
-            String q=search.getText().toString().trim().toLowerCase(Locale.getDefault());
-            rows.removeAllViews();
-            int shown=0;
-            for(LauncherApp app:apps) {
-                if(!q.isEmpty()&&!app.label.toLowerCase(Locale.getDefault()).contains(q))continue;
-                LinearLayout row=new LinearLayout(context);
-                row.setGravity(Gravity.CENTER_VERTICAL);
-                row.setPadding(dp(5),dp(7),dp(5),dp(7));
-                row.setBackground(rippleSurface(0x0014231c,0x223bdc9b,dp(16),0x00000000));
-
-                FrameLayout iconWrap=new FrameLayout(context);
-                iconWrap.setBackground(round(SURFACE_RAISED,dp(14),0x553b5b49));
-                ImageView icon=new ImageView(context);
-                icon.setImageDrawable(app.icon);
-                icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                iconWrap.addView(icon,new FrameLayout.LayoutParams(dp(38),dp(38),Gravity.CENTER));
-                row.addView(iconWrap,new LayoutParams(dp(50),dp(50)));
-
-                TextView name=label(app.label,14,IVORY,
-                        Typeface.create("sans-serif-medium",Typeface.NORMAL));
-                name.setPadding(dp(13),0,dp(4),0);
-                row.addView(name,new LayoutParams(0,dp(50),1f));
-
-                TextView pin=button("＋",GOLD);
-                pin.setTextSize(20);
-                pin.setBackground(rippleSurface(SURFACE,0x553bdc9b,dp(14),BORDER));
-                pin.setContentDescription("Pin "+app.label+" to Home");
-                pin.setOnClickListener(v->dismissDrawer(dialog,root,()->callbacks.onPinApp(app)));
-                row.addView(pin,new LayoutParams(dp(40),dp(40)));
-                row.setOnClickListener(v->dismissDrawer(dialog,root,()->callbacks.onAppSelected(app)));
-                row.setOnLongClickListener(v->{
-                    dismissDrawer(dialog,root,()->callbacks.onAppLongPressed(app,row));
-                    return true;
-                });
-                rows.addView(row,new LayoutParams(-1,dp(64)));
-                row.setTag("drawer-app");
-                shown++;
-                View line=new View(context);
-                line.setBackgroundColor(0x263b5b49);
-                rows.addView(line,new LayoutParams(-1,dp(1)));
-            }
-            if(shown==0) {
-                TextView empty=label(q.isEmpty()?"No apps available":"No apps match “"+q+"”",13,MUTED,
-                        Typeface.create("sans-serif",Typeface.NORMAL));
-                empty.setGravity(Gravity.CENTER);
-                rows.addView(empty,new LayoutParams(-1,dp(100)));
-            }
-        };
+        Runnable refresh=()->refreshDrawerRows(search,rows,dialog,root,selectedGroup[0]);
         search.addTextChangedListener(new TextWatcher(){
             public void beforeTextChanged(CharSequence s,int st,int count,int after){}
             public void onTextChanged(CharSequence s,int st,int before,int count){refresh.run();}
@@ -614,9 +774,9 @@ public final class TesseraHomeView extends LinearLayout {
             WindowManager.LayoutParams params=new WindowManager.LayoutParams();
             params.copyFrom(window.getAttributes());
             params.width=WindowManager.LayoutParams.MATCH_PARENT;
-            params.height=Math.round(getResources().getDisplayMetrics().heightPixels*.92f);
+            params.height=Math.round(getResources().getDisplayMetrics().heightPixels*.94f);
             params.gravity=Gravity.BOTTOM;
-            params.dimAmount=.62f;
+            params.dimAmount=.68f;
             window.setAttributes(params);
             window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
@@ -624,22 +784,97 @@ public final class TesseraHomeView extends LinearLayout {
         if(window!=null) {
             window.setBackgroundDrawableResource(android.R.color.transparent);
             window.setLayout(WindowManager.LayoutParams.MATCH_PARENT,
-                    Math.round(getResources().getDisplayMetrics().heightPixels*.92f));
+                    Math.round(getResources().getDisplayMetrics().heightPixels*.94f));
             window.setGravity(Gravity.BOTTOM);
-            window.setDimAmount(.62f);
+            window.setDimAmount(.68f);
         }
         drawerDialog=dialog;
         dialog.setOnDismissListener(d->{drawerDialog=null;});
         if(!reducedMotion) {
             root.setAlpha(0f);
-            root.setTranslationY(dp(54));
-            root.animate().alpha(1f).translationY(0).setDuration(430)
-                    .setInterpolator(new DecelerateInterpolator(1.7f)).start();
+            root.setTranslationY(dp(72));
+            root.setScaleX(.985f);root.setScaleY(.985f);
+            root.animate().alpha(1f).translationY(0).scaleX(1f).scaleY(1f)
+                    .setDuration(560).setInterpolator(new OvershootInterpolator(.55f)).start();
             int stagger=0;
             for(int i=0;i<rows.getChildCount();i++) {
                 View child=rows.getChildAt(i);
-                if("drawer-app".equals(child.getTag()))animateIn(child,Math.min(420,stagger++*28L));
+                if("drawer-app".equals(child.getTag()))animateIn(child,Math.min(360,stagger++*24L));
             }
+        }
+        search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+    }
+
+    private void refreshDrawerRows(EditText search,LinearLayout rows,Dialog dialog,View root,int group) {
+        String query=search.getText().toString().trim().toLowerCase(Locale.getDefault());
+        rows.removeAllViews();
+        int shown=0;
+        char lastInitial=0;
+        for(LauncherApp app:apps) {
+            if(!query.isEmpty()&&!app.label.toLowerCase(Locale.getDefault()).contains(query))continue;
+            if(group!=GROUP_ALL&&libraryGroup(app)!=group)continue;
+            char initial=app.label.isEmpty()?'#':Character.toUpperCase(app.label.charAt(0));
+            if(query.isEmpty()&&initial!=lastInitial) {
+                TextView letter=label(String.valueOf(initial),8,0xff7f9b89,
+                        Typeface.create("sans-serif-medium",Typeface.NORMAL));
+                letter.setLetterSpacing(.16f);
+                letter.setPadding(dp(5),0,0,0);
+                rows.addView(letter,new LayoutParams(-1,dp(22)));
+                lastInitial=initial;
+            }
+            LinearLayout row=new LinearLayout(context);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(4),dp(5),dp(4),dp(5));
+            row.setBackground(rippleSurface(0x0014231c,0x2239b87c,dp(14),0x00000000));
+            FrameLayout iconWrap=new FrameLayout(context);
+            iconWrap.setBackground(round(SURFACE_RAISED,dp(13),0x334c6c57));
+            ImageView icon=new ImageView(context);
+            icon.setImageDrawable(app.icon);
+            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            iconWrap.addView(icon,new FrameLayout.LayoutParams(dp(39),dp(39),Gravity.CENTER));
+            row.addView(iconWrap,new LayoutParams(dp(50),dp(48)));
+            TextView name=label(app.label,12,IVORY,Typeface.create("sans-serif-medium",Typeface.NORMAL));
+            name.setPadding(dp(11),0,dp(3),0);
+            row.addView(name,new LayoutParams(0,dp(48),1f));
+            TextView pin=button("＋",GOLD);
+            pin.setTextSize(18);
+            pin.setBackground(rippleSurface(SURFACE,0x5539b87c,dp(13),BORDER));
+            pin.setContentDescription("Pin "+app.label+" to Home");
+            pin.setOnClickListener(v->dismissDrawer(dialog,root,()->callbacks.onPinApp(app)));
+            row.addView(pin,new LayoutParams(dp(39),dp(39)));
+            row.setOnClickListener(v->dismissDrawer(dialog,root,()->callbacks.onAppSelected(app)));
+            row.setOnLongClickListener(v->{
+                dismissDrawer(dialog,root,()->callbacks.onAppLongPressed(app,row));
+                return true;
+            });
+            rows.addView(row,new LayoutParams(-1,dp(56)));
+            row.setTag("drawer-app");
+            shown++;
+        }
+        if(shown==0) {
+            LinearLayout empty=new LinearLayout(context);
+            empty.setGravity(Gravity.CENTER);
+            empty.setOrientation(VERTICAL);
+            TextView glyph=label("⌕",30,GOLD,Typeface.create("serif",Typeface.NORMAL));
+            glyph.setGravity(Gravity.CENTER);
+            empty.addView(glyph,new LayoutParams(-1,dp(40)));
+            TextView message=label(query.isEmpty()?"No apps in this category":"No apps match “"+query+"”",12,MUTED,
+                    Typeface.create("sans-serif",Typeface.NORMAL));
+            message.setGravity(Gravity.CENTER);
+            empty.addView(message,new LayoutParams(-1,dp(30)));
+            rows.addView(empty,new LayoutParams(-1,dp(100)));
+        }
+    }
+
+    private int libraryGroup(LauncherApp app) {
+        switch(app.category) {
+            case ApplicationInfo.CATEGORY_SOCIAL:return GROUP_SOCIAL;
+            case ApplicationInfo.CATEGORY_PRODUCTIVITY:return GROUP_WORK;
+            case ApplicationInfo.CATEGORY_AUDIO:
+            case ApplicationInfo.CATEGORY_VIDEO:
+            case ApplicationInfo.CATEGORY_IMAGE:return GROUP_MEDIA;
+            case ApplicationInfo.CATEGORY_GAME:return GROUP_GAMES;
+            default:return GROUP_OTHER;
         }
     }
 
@@ -668,7 +903,7 @@ public final class TesseraHomeView extends LinearLayout {
         if(isAttachedToWindow())postDelayed(clockTicker,60000);
     }
     private void updateIndicator(){
-        pageIndicator.setText(context.getString(R.string.workspace_page_indicator,currentPage+1,pageCount));
+        pageIndicator.setText(String.format(Locale.getDefault(),"%02d   /   %02d",currentPage+1,pageCount));
     }
     private TextView label(String text,float size,int color,Typeface face) {
         TextView v=new TextView(context);v.setText(text);v.setTextSize(size);v.setTextColor(color);
@@ -688,8 +923,8 @@ public final class TesseraHomeView extends LinearLayout {
         view.setScaleX(.96f);view.setScaleY(.96f);
         view.animate().cancel();
         view.animate().alpha(1f).translationY(0).scaleX(1f).scaleY(1f)
-                .setStartDelay(delay).setDuration(390)
-                .setInterpolator(new DecelerateInterpolator(1.65f)).start();
+                .setStartDelay(delay).setDuration(500)
+                .setInterpolator(new OvershootInterpolator(.48f)).start();
     }
 
     private RippleDrawable rippleSurface(int fill,int pressed,int radius,int stroke) {

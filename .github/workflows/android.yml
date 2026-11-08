@@ -46,7 +46,7 @@ jobs:
             echo "APK verification pass ${pass}/3"
             unzip -tq "$APK"
             "$AAPT" dump badging "$APK" > /tmp/tessera-badging.txt
-            grep -Fq "package: name='com.example.tessera.debug' versionCode='9' versionName='0.3.0-debug'" /tmp/tessera-badging.txt
+            grep -Fq "package: name='com.example.tessera.debug' versionCode='10' versionName='0.4.0-debug'" /tmp/tessera-badging.txt
             grep -Eq "^launchable-activity:" /tmp/tessera-badging.txt
             grep -Fq "sdkVersion:'26'" /tmp/tessera-badging.txt
             grep -Fq "targetSdkVersion:'36'" /tmp/tessera-badging.txt
@@ -99,7 +99,10 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-linux-hw-accel: false
           disable-animations: true
-          script: gradle --no-daemon :app:connectedDebugAndroidTest --stacktrace --info
+          script: |
+            gradle --no-daemon :app:connectedDebugAndroidTest --stacktrace --info
+            mkdir -p artifacts/ui
+            adb pull /sdcard/Pictures/TesseraVisual artifacts/ui/
       - name: Upload instrumentation test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -108,4 +111,5 @@ jobs:
           path: |
             app/build/outputs/androidTest-results/connected/
             app/build/reports/androidTests/connected/
+            artifacts/ui/
           if-no-files-found: warn
