@@ -50,7 +50,8 @@ jobs:
             grep -Eq "^launchable-activity:" /tmp/tessera-badging.txt
             grep -Fq "sdkVersion:'26'" /tmp/tessera-badging.txt
             grep -Fq "targetSdkVersion:'36'" /tmp/tessera-badging.txt
-            "$APKSIGNER" verify --verbose --print-certs "$APK"
+            "$APKSIGNER" verify --verbose --print-certs "$APK" | tee /tmp/tessera-signature.txt
+            grep -Fq "Signer #1 certificate SHA-256 digest: c092f80aab6af16840b2307ac7ad1e6066fb491e9178f40fe17d2b2727dcb42a" /tmp/tessera-signature.txt
           done
           echo "Final APK SHA-256:"
           sha256sum "$APK"

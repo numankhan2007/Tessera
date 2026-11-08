@@ -4,7 +4,7 @@
 
 Tessera is a native Android HOME application designed around a wallpaper-first workspace, expressive motion, deep emerald surfaces and antique-gold accents. It uses Android launcher APIs for app discovery, app launching, shortcuts and widgets; the home screen is not a WebView or a simulated desktop.
 
-> **Current status:** feature-complete core launcher foundation (0.2.3). It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
+> **Current status:** feature-complete core launcher foundation (0.2.4). It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
 
 ## Core functionality
 
@@ -52,13 +52,14 @@ APK output:
 app/build/outputs/apk/debug/app-debug.apk
 \`\`\`
 
-The CI APK is debug-signed with Android's generated debug key. It is intended for installation and device testing, not Play Store release. The debug application ID is \`com.example.tessera.debug\`; the release application ID is \`com.example.tessera\`.
+The CI APK is signed with a stable, repository-included test-only debug key so subsequent Tessera CI builds can update it in place. It is intended only for installation and device testing, not Play Store release. This shared key is public and must never be reused for production signing. The debug application ID is \`com.example.tessera.debug\`; the release application ID is \`com.example.tessera\`.
 
 ## Install and select as Home
 
 1. Download \`app-debug.apk\` from the successful GitHub Actions artifact.
-2. Open the APK on the Android device and allow installation from the selected source when prompted.
-3. Open Tessera and tap **Set Tessera as your Home app**.
+2. For the first install of this stable-signature line, uninstall older temporary-CI-signed Tessera debug builds first. Export a workspace backup from the older build before uninstalling if you need to preserve its layout. Later builds on this same stable key can update in place.
+3. Open the APK on the Android device and allow installation from the selected source when prompted.
+4. Open Tessera and tap **Set Tessera as your Home app**.
 4. Choose Tessera in Android's Home app role chooser.
 
 To pin apps, open the drawer and tap the \`+\` beside an app. Long-press an app in the drawer to reveal **Pin to Home**, **App shortcuts** and **App info**. To move a home item, long-press it, select **Move / Reposition**, then drop it at the target location. Dropping one app on another creates a folder.
@@ -74,7 +75,7 @@ This is a complete installable core launcher, not a claim that every possible la
 - Workspace icons use the app-provided launcher icons. Licensed Reem Kufi / Amiri / Aref Ruqaa assets are not bundled yet; the UI uses installed Android typefaces as safe fallbacks.
 - Advanced motion systems, custom icon packs, themed folder previews, per-page wallpaper effects and shortcut pinning requests that require vendor confirmation remain future enhancements.
 - CI verifies compilation, Android lint, APK archive integrity, package metadata and debug signature. It does not replace installation and gesture/widget testing on a physical device. OEM launchers, work-profile policies, battery optimizers, edge-to-edge insets and individual widgets need device-level QA.
-- A release APK needs a user-owned signing key and signing configuration. The debug key must not be used as a public release identity.
+- A release APK needs a user-owned signing key and signing configuration. The shared debug key is intentionally public and must never be used as a release identity.
 
 ## Architecture
 

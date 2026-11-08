@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4
+
+- Added a stable, test-only debug signing key so later CI APKs can update the installed test build in place.
+- Added a CI certificate-fingerprint assertion to the three-pass APK audit.
+- Documented the one-time migration from older temporary CI debug signatures.
+
 ## 0.2.3
 
 - Validate and commit workspace restores before removing any existing widget bindings.

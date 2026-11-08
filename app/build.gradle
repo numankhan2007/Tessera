@@ -8,8 +8,8 @@ android {
         applicationId 'com.example.tessera'
         minSdk 26
         targetSdk 36
-        versionCode 5
-        versionName '0.2.3'
+        versionCode 6
+        versionName '0.2.4'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     compileOptions {
@@ -19,8 +19,20 @@ android {
     testOptions {
         animationsDisabled true
     }
+    signingConfigs {
+        sharedDebug {
+            storeFile file('tessera-debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
     buildTypes {
-        debug { applicationIdSuffix '.debug'; versionNameSuffix '-debug' }
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+            signingConfig signingConfigs.sharedDebug
+        }
         release { minifyEnabled false }
     }
 }
