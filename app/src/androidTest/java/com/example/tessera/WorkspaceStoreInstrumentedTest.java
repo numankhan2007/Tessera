@@ -136,4 +136,25 @@ public final class WorkspaceStoreInstrumentedTest {
         assertNull(store.find(folder.id));
     }
 
+    @Test public void invalidBackupDoesNotDeleteExistingWorkspaceItems() {
+        long app=store.addApp(0,0,0,"com.example.keep/.Main","Keep me",0);
+        try {
+            store.restoreJson("{not-json");
+            fail("Expected malformed JSON to be rejected");
+        } catch (Exception expected) {
+            assertNotNull(store.find(app));
+            assertEquals("Keep me",store.find(app).title);
+        }
+    }
+
+    @Test public void unsupportedBackupDoesNotDeleteExistingWorkspaceItems() {
+        long app=store.addApp(0,0,0,"com.example.keep/.Main","Keep me",0);
+        try {
+            store.restoreJson("{\"format\":\"other\",\"version\":1,\"items\":[]}");
+            fail("Expected unsupported backup format to be rejected");
+        } catch (Exception expected) {
+            assertNotNull(store.find(app));
+            assertEquals(1,store.all().size());
+        }
+    }
 }

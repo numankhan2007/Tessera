@@ -207,6 +207,8 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
         for(WorkspaceItem item:items) if(WorkspaceItem.WIDGET.equals(item.type)) {
             AppWidgetProviderInfo info=widgetManager.getAppWidgetInfo(item.widgetId);
             if(info==null) {
+                try {widgetHost.deleteAppWidgetId(item.widgetId);} catch(RuntimeException ignored) {}
+                widgetViews.remove(item.widgetId);
                 workspaceStore.delete(item.id);
                 continue;
             }
@@ -420,21 +422,22 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
             StringBuilder json=new StringBuilder();
             String line;
             while((line=reader.readLine())!=null)json.append(line).append('\n');
-            for(WorkspaceItem item:workspaceStore.all())if(WorkspaceItem.WIDGET.equals(item.type)) {
+            List<WorkspaceItem> previousItems=workspaceStore.all();
+            int restored=workspaceStore.restoreJson(json.toString());
+            // The replacement layout committed successfully; now release old device-bound widget IDs.
+            for(WorkspaceItem item:previousItems)if(WorkspaceItem.WIDGET.equals(item.type)) {
                 try {widgetHost.deleteAppWidgetId(item.widgetId);} catch(RuntimeException ignored) {}
             }
             widgetViews.clear();
-            int restored=workspaceStore.restoreJson(json.toString());
             int skipped=workspaceStore.getSkippedWidgetCount();
             renderWorkspace();
-            String message="Restored "+restored+" workspace items.";
+            String message="Restored "+restored+" workspace items."; 
             if(skipped>0)message+=" Re-add "+skipped+" widgets (Android permissions are device-specific).";
             Toast.makeText(this,message,Toast.LENGTH_LONG).show();
         } catch(Exception e) {
             Toast.makeText(this,"Invalid or unreadable Tessera backup.",Toast.LENGTH_LONG).show();
         }
     }
-
     @Override public void onReducedMotionChanged(boolean enabled) {
         reducedMotion=enabled;
         getPreferences(MODE_PRIVATE).edit().putBoolean("reduce_motion",enabled).apply();

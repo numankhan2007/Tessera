@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3
+
+- Validate and commit workspace restores before removing any existing widget bindings.
+- Preserve the current workspace when an imported JSON backup is invalid or unsupported.
+- Release stale Android widget IDs when their provider can no longer be resolved.
+- Added instrumentation regression tests for malformed and unsupported backups.
+
 ## 0.2.2
 
 - Added per-child folder removal with safe promotion when only one child remains.
