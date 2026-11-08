@@ -104,11 +104,11 @@ jobs:
             mkdir -p artifacts/ui
             adb pull /sdcard/Pictures/TesseraVisual artifacts/ui/ || true
             test -n "$(find app/build/outputs/androidTest-results/connected -name 'TEST-*.xml' -print -quit)" || { echo "JUnit XML report missing"; exit 1; }
-            grep -Eq 'tests="12" failures="0" errors="0" skipped="0"' "$(find app/build/outputs/androidTest-results/connected -name 'TEST-*.xml' -print -quit)" || { echo "JUnit report contains failed, skipped or incomplete tests"; cat "$(find app/build/outputs/androidTest-results/connected -name 'TEST-*.xml' -print -quit)"; exit 1; }
+            grep -Eq 'tests="13" failures="0" errors="0" skipped="0"' "$(find app/build/outputs/androidTest-results/connected -name 'TEST-*.xml' -print -quit)" || { echo "JUnit report contains failed, skipped or incomplete tests"; cat "$(find app/build/outputs/androidTest-results/connected -name 'TEST-*.xml' -print -quit)"; exit 1; }
             test "$(find artifacts/ui/TesseraVisual -maxdepth 1 -type f -name '*.png' | wc -l)" -eq 2 || { echo "Expected two visual screenshots"; find artifacts/ui -type f -ls || true; exit 1; }
             test -s artifacts/ui/TesseraVisual/home.png
             test -s artifacts/ui/TesseraVisual/app-library.png
-            echo "All 12 Android tests passed and both visual captures were exported."
+            echo "All 13 Android tests passed and both visual captures were exported."
       - name: Upload instrumentation test reports
         if: always()
         uses: actions/upload-artifact@v4
