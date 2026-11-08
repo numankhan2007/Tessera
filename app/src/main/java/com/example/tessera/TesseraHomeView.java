@@ -40,6 +40,7 @@ import android.widget.TextView;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -81,6 +82,8 @@ public final class TesseraHomeView extends LinearLayout {
     private final LinearLayout dock;
     private final TextView pageIndicator;
     private final TextView clock;
+    private final TextView heroTime;
+    private final TextView heroGreeting;
     private final TextView homeHint;
     private List<LauncherApp> apps=new ArrayList<>();
     private List<WorkspaceItem> items=new ArrayList<>();
@@ -110,7 +113,8 @@ public final class TesseraHomeView extends LinearLayout {
         TextView brand=label("T E S S E R A",11,MINT,Typeface.create("sans-serif-medium",Typeface.NORMAL));
         brand.setLetterSpacing(.16f);
         masthead.addView(brand,new LayoutParams(0,dp(40),1f));
-        clock=label("",12,IVORY,Typeface.create("sans-serif",Typeface.NORMAL));
+        clock=label("",10,MUTED,Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        clock.setLetterSpacing(.04f);
         masthead.addView(clock,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(40)));
         TextView options=button("＋",GOLD);
         options.setTextSize(23);
@@ -126,10 +130,17 @@ public final class TesseraHomeView extends LinearLayout {
         hero.setGravity(Gravity.CENTER_VERTICAL);
         hero.setOrientation(HORIZONTAL);
         hero.setPadding(dp(2),dp(1),dp(3),0);
-        TextView title=label("Your space.\nYour own rhythm.",25,IVORY,
-                Typeface.create("serif",Typeface.ITALIC));
-        title.setLineSpacing(dp(1),1f);
-        hero.addView(title,new LayoutParams(0,dp(61),1f));
+        LinearLayout heroCopy=new LinearLayout(c);
+        heroCopy.setOrientation(VERTICAL);
+        heroCopy.setGravity(Gravity.CENTER_VERTICAL);
+        heroGreeting=label("GOOD EVENING",8.5f,GOLD,
+                Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        heroGreeting.setLetterSpacing(.19f);
+        heroCopy.addView(heroGreeting,new LayoutParams(-1,dp(17)));
+        heroTime=label("5:12",48,IVORY,Typeface.create("sans-serif-light",Typeface.NORMAL));
+        heroTime.setIncludeFontPadding(false);
+        heroCopy.addView(heroTime,new LayoutParams(-1,dp(62)));
+        hero.addView(heroCopy,new LayoutParams(0,dp(80),1f));
         TextView orbit=label("✧",42,GOLD,Typeface.create("serif",Typeface.NORMAL));
         orbit.setGravity(Gravity.CENTER);
         orbit.setBackground(rippleSurface(0x221a3527,0x2239b87c,dp(30),0x333e6650));
@@ -148,7 +159,7 @@ public final class TesseraHomeView extends LinearLayout {
             orbit.setScaleX(pulse);
             orbit.setScaleY(pulse);
         });
-        LayoutParams heroLp=new LayoutParams(-1,dp(66));
+        LayoutParams heroLp=new LayoutParams(-1,dp(86));
         heroLp.topMargin=dp(2);
         addView(hero,heroLp);
 
@@ -164,7 +175,8 @@ public final class TesseraHomeView extends LinearLayout {
             homeHint.setLetterSpacing(.06f);
             homeHint.setBackground(rippleSurface(SURFACE,0x4439b87c,dp(13),BORDER));
             homeHint.setOnClickListener(v->callbacks.onSetHomeRequested());
-            LayoutParams hintLp=new LayoutParams(-1,dp(34));
+            LayoutParams hintLp=new LayoutParams(dp(224),dp(34));
+            hintLp.gravity=Gravity.CENTER_HORIZONTAL;
             hintLp.topMargin=dp(3);
             addView(homeHint,hintLp);
         } else homeHint=null;
@@ -330,10 +342,12 @@ public final class TesseraHomeView extends LinearLayout {
             section.addView(pageTitle,new LayoutParams(0,dp(25),1f));
             int appCount=0;
             for(WorkspaceItem item:items)if(item.page==page)appCount++;
-            TextView count=label(appCount==0?"READY":"ITEMS  "+String.format(Locale.getDefault(),"%02d",appCount),7,0xff789184,
+            String countLabel=appCount==0?"—":String.format(Locale.getDefault(),"%02d",appCount);
+            TextView count=label(countLabel,8,0xff789184,
                     Typeface.create("sans-serif-medium",Typeface.NORMAL));
-            count.setLetterSpacing(.11f);
-            section.addView(count,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(25)));
+            count.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+            count.setContentDescription(appCount==0?"No items on this page":appCount+" items on this page");
+            section.addView(count,new LayoutParams(dp(30),dp(25)));
             column.addView(section,new LayoutParams(-1,dp(26)));
 
             List<WorkspaceItem> pageItems=new ArrayList<>();
@@ -942,7 +956,17 @@ public final class TesseraHomeView extends LinearLayout {
     }
 
     private void updateClock() {
-        clock.setText(new SimpleDateFormat("h:mm  ·  EEE, d MMM",Locale.getDefault()).format(new Date()));
+        Date now=new Date();
+        clock.setText(new SimpleDateFormat("EEE, d MMM",Locale.getDefault()).format(now));
+        boolean use24Hour=android.text.format.DateFormat.is24HourFormat(context);
+        heroTime.setText(new SimpleDateFormat(use24Hour?"HH:mm":"h:mm",Locale.getDefault()).format(now));
+        Calendar calendar=Calendar.getInstance();
+        calendar.setTime(now);
+        int hour=calendar.get(Calendar.HOUR_OF_DAY);
+        String greeting=hour>=5&&hour<12?"GOOD MORNING"
+                :hour>=12&&hour<17?"GOOD AFTERNOON"
+                :hour>=17&&hour<22?"GOOD EVENING":"GOOD NIGHT";
+        heroGreeting.setText(greeting);
         removeCallbacks(clockTicker);
         if(isAttachedToWindow())postDelayed(clockTicker,60000);
     }

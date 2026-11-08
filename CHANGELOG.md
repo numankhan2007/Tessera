@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.4 — Daily Canvas / Live Clock Hero
+
+- Replaced the decorative two-line home headline with a live, large-format clock and time-of-day greeting.
+- Moved the compact date into the masthead and made the clock follow Android's 12/24-hour preference.
+- Reduced the first-run Set as Home action to a centered, compact control.
+- Replaced verbose page item labels with a compact two-digit count and a full accessible description for narrow phone screens.
+- Preserved wallpaper-first rendering, content-sized pages, app pins, folders, dock, native widgets, shortcuts and backup/restore.
+
 ## 0.4.3 — Kinetic home / adaptive workspace
 
 - Removed the oversized empty workspace panel; the app grid now measures its content rows and widget spans while preserving the full six-row placement model.
