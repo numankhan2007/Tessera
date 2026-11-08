@@ -13,7 +13,7 @@ Figma source of truth: https://www.figma.com/design/IGoHRIPtbgqFHT3RhpQ24a
 - Hero: a 8.5 sp uppercase daypart greeting above a 48 sp sans-serif-light clock, with the existing small gold star emblem as the visual counterweight.
 - Clock formatting follows Android's global 12/24-hour preference and updates every minute; the greeting changes across morning, afternoon, evening and night.
 - First-run Home-role action is a centered 224 × 34 dp pill, not a full-width banner.
-- Workspace item count uses concise, non-tracked typography with no letter-spacing that would clip on narrow displays.
+- Workspace item count is a right-aligned two-digit marker with a full accessibility description, preventing text clipping on narrow displays.
 - Keep the system wallpaper fully unobstructed; do not reintroduce full-screen radial gradients.
 
 ## 0.4.3 — Kinetic Home / Adaptive Workspace
