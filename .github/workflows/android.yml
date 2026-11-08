@@ -99,12 +99,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-linux-hw-accel: false
           disable-animations: true
-          script: |
-            gradle --no-daemon :app:connectedDebugAndroidTest --stacktrace --info || {
-              mkdir -p app/build/outputs/androidTest-results/connected
-              adb logcat -d -v time > app/build/outputs/androidTest-results/connected/emulator-logcat.txt || true
-              exit 1
-            }
+          script: gradle --no-daemon :app:connectedDebugAndroidTest --stacktrace --info
       - name: Upload instrumentation test reports
         if: always()
         uses: actions/upload-artifact@v4
