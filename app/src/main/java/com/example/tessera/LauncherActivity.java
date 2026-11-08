@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -74,6 +75,7 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     private boolean callbackRegistered;
     private boolean reducedMotion;
     private volatile boolean activityDestroyed;
+    private final AtomicInteger appRefreshGeneration=new AtomicInteger();
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -169,30 +171,39 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     }
 
     private void refreshApps() {
-        if(launcherApps==null)return;
+        if(launcherApps==null||activityDestroyed)return;
+        final int generation=appRefreshGeneration.incrementAndGet();
         new Thread(()->{
             ArrayList<LauncherApp> result=new ArrayList<>();
+            boolean catalogueRead=false;
             try {
                 List<UserHandle> profiles=launcherApps.getProfiles();
+                catalogueRead=true;
                 for(UserHandle profile:profiles) {
-                    long serial;
-                    try { serial=userManager.getSerialNumberForUser(profile); }
-                    catch(Exception e) { serial=profile.hashCode(); }
-                    List<LauncherActivityInfo> activities=launcherApps.getActivityList(null,profile);
-                    for(LauncherActivityInfo info:activities) {
-                        try { result.add(new LauncherApp(info,serial)); }
-                        catch(RuntimeException ignored) {}
+                    try {
+                        long serial;
+                        try { serial=userManager.getSerialNumberForUser(profile); }
+                        catch(Exception e) { serial=profile.hashCode(); }
+                        List<LauncherActivityInfo> activities=launcherApps.getActivityList(null,profile);
+                        for(LauncherActivityInfo info:activities) {
+                            try { result.add(new LauncherApp(info,serial)); }
+                            catch(RuntimeException ignored) {}
+                        }
+                    } catch(SecurityException|IllegalStateException ignored) {
+                        // One restricted/locked profile must not hide apps from the other profiles.
                     }
                 }
                 Collections.sort(result,Comparator.comparing(a->a.label.toLowerCase(Locale.getDefault())));
             } catch(SecurityException|IllegalStateException e) {
                 runOnUiThread(()->{
-                if(!activityDestroyed&&!isFinishing())
-                    Toast.makeText(this,"Tessera could not read the app catalogue.",Toast.LENGTH_LONG).show();
-            });
+                    if(!activityDestroyed&&!isFinishing()&&generation==appRefreshGeneration.get())
+                        Toast.makeText(this,"Tessera could not read the app catalogue.",Toast.LENGTH_LONG).show();
+                });
             }
+            final boolean success=catalogueRead;
             runOnUiThread(()->{
-                if(activityDestroyed||isFinishing()||workspaceStore==null)return;
+                if(activityDestroyed||isFinishing()||workspaceStore==null
+                        ||generation!=appRefreshGeneration.get()||!success)return;
                 installedApps=result;
                 workspaceStore.seedIfEmpty(installedApps);
                 renderWorkspace();
@@ -291,11 +302,9 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     }
 
     @Override public void onPinApp(LauncherApp app) {
-        for(WorkspaceItem item:workspaceStore.all()) {
-            if(WorkspaceItem.APP.equals(item.type)&&app.componentName.flattenToString().equals(item.component)
-                    &&item.userSerial==app.userSerial) {
-                Toast.makeText(this,app.label+" is already on Home.",Toast.LENGTH_SHORT).show();return;
-            }
+        String component=app.componentName.flattenToString();
+        if(workspaceStore.containsWorkspaceEntry(component,app.userSerial,null)) {
+            Toast.makeText(this,app.label+" is already on Home.",Toast.LENGTH_SHORT).show();return;
         }
         int page=homeView==null?0:homeView.getCurrentPage();
         int cell=workspaceStore.firstFreeCell(page,4,6);
@@ -342,6 +351,11 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
             if(page==-1){Toast.makeText(this,"Widgets stay on workspace pages.",Toast.LENGTH_SHORT).show();return;}
             x=Math.max(0,Math.min(4-item.spanX,x));
             y=Math.max(0,Math.min(6-item.spanY,y));
+        }
+        if(WorkspaceItem.WIDGET.equals(item.type)
+                &&workspaceStore.hasOverlap(page,x,y,item.spanX,item.spanY,item.id)) {
+            Toast.makeText(this,"That widget position overlaps another workspace item.",Toast.LENGTH_SHORT).show();
+            return;
         }
         WorkspaceItem target=workspaceStore.findAt(page,x,y,item.id);
         if(target!=null&&target.id!=item.id) {
@@ -463,6 +477,10 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     private void showAppShortcuts(LauncherApp app) {
         if(launcherApps==null) {
             Toast.makeText(this,"App shortcuts require Android 7.1 or newer.",Toast.LENGTH_SHORT).show();return;
+        }
+        if(workspaceStore.containsWorkspaceEntry(app.componentName.flattenToString(),app.userSerial,shortcut.getId())) {
+            Toast.makeText(this,"This shortcut is already on Home.",Toast.LENGTH_SHORT).show();
+            return;
         }
         try {
             LauncherApps.ShortcutQuery query=new LauncherApps.ShortcutQuery()
@@ -620,8 +638,13 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
         float availableWidth=getResources().getDisplayMetrics().widthPixels/density-40f;
         int spanX=Math.max(1,Math.min(4,(int)Math.ceil(info.minWidth/Math.max(1f,availableWidth/4f))));
         int spanY=Math.max(1,Math.min(4,(int)Math.ceil(info.minHeight/82f)));
-        int page=0,cell=workspaceStore.firstFreeSpanCell(page,spanX,spanY);
-        if(cell<0){page=workspaceStore.pageCount();workspaceStore.addPage();cell=0;}
+        int page=homeView==null?0:homeView.getCurrentPage();
+        int cell=workspaceStore.firstFreeSpanCell(page,spanX,spanY);
+        if(cell<0) {
+            page=workspaceStore.addPage();
+            if(homeView!=null)homeView.setCurrentPage(page);
+            cell=0;
+        }
         String title=String.valueOf(info.loadLabel(getPackageManager()));
         workspaceStore.addWidget(page,cell%4,cell/4,id,info.provider.flattenToString(),title,spanX,spanY);
         pendingWidgetId=-1;

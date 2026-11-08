@@ -240,6 +240,31 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
                 (WorkspaceItem.SHORTCUT.equals(item.type)&&item.payload!=null?item.payload:"");
     }
 
+    /**
+     * Check app and shortcut entries across pages, the dock and folder children.
+     * A null shortcutId means the app's primary launcher activity.
+     */
+    public synchronized boolean containsWorkspaceEntry(String component,long userSerial,String shortcutId) {
+        if(component==null)return false;
+        for(WorkspaceItem item:all()) {
+            if(item.userSerial==userSerial&&component.equals(item.component)) {
+                if(shortcutId==null&&WorkspaceItem.APP.equals(item.type))return true;
+                if(shortcutId!=null&&WorkspaceItem.SHORTCUT.equals(item.type)
+                        &&shortcutId.equals(item.payload))return true;
+            }
+            if(WorkspaceItem.FOLDER.equals(item.type)&&item.payload!=null) {
+                for(String entry:item.payload.split("\\n")) {
+                    String[] parts=entry.split("\\|",4);
+                    if(parts.length<3||!component.equals(parts[0]))continue;
+                    long serial=0;
+                    try {serial=Long.parseLong(parts[1]);} catch(NumberFormatException ignored) {}
+                    String storedShortcut=parts.length>=4?parts[3]:"";
+                    if(serial==userSerial&&(shortcutId==null?storedShortcut.isEmpty():shortcutId.equals(storedShortcut)))return true;
+                }
+            }
+        }
+        return false;
+    }
     public synchronized int pageCount() {
         int count=Math.max(DEFAULT_PAGES,prefs.getInt("page_count",DEFAULT_PAGES));
         for(WorkspaceItem item:all()) if(item.page>=count) count=item.page+1;

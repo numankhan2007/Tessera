@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.6
+
+- Prevent widget drag/drop from overlapping any occupied cells across its full grid span.
+- Place new widgets on the currently visible page, creating and navigating to a new page when necessary.
+- Detect duplicate app and shortcut pins across all pages, the dock, and folder contents.
+- Make app-catalogue refreshes generation-safe so stale background scans cannot overwrite newer results.
+- Isolate inaccessible work profiles so one profile cannot suppress apps from other profiles.
+- Added regression coverage for duplicate detection across dock and folders.
+
 ## 0.2.5
 
 - Persist the last selected workspace page across Activity recreation and app restarts.

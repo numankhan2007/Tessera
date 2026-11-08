@@ -4,7 +4,7 @@
 
 Tessera is a native Android HOME application designed around a wallpaper-first workspace, expressive motion, deep emerald surfaces and antique-gold accents. It uses Android launcher APIs for app discovery, app launching, shortcuts and widgets; the home screen is not a WebView or a simulated desktop.
 
-> **Current status:** feature-complete core launcher foundation (0.2.5). It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
+> **Current status:** feature-complete core launcher foundation (0.2.6). It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
 
 ## Core functionality
 

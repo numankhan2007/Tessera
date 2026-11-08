@@ -157,4 +157,16 @@ public final class WorkspaceStoreInstrumentedTest {
             assertEquals(1,store.all().size());
         }
     }
+    @Test public void duplicateDetectionIncludesPagesDockAndFolderChildren() {
+        store.addApp(-1,0,0,"com.example.dock/.Main","Dock app",7);
+        assertTrue(store.containsWorkspaceEntry("com.example.dock/.Main",7,null));
+        long first=store.addApp(1,0,0,"com.example.alpha/.Main","Alpha",7);
+        long second=store.addShortcut(1,1,0,"com.example.beta/.Main","compose","Compose",7);
+        store.mergeInto(second,first);
+        assertTrue(store.containsWorkspaceEntry("com.example.alpha/.Main",7,null));
+        assertTrue(store.containsWorkspaceEntry("com.example.beta/.Main",7,"compose"));
+        assertFalse(store.containsWorkspaceEntry("com.example.beta/.Main",7,null));
+        assertFalse(store.containsWorkspaceEntry("com.example.beta/.Main",8,"compose"));
+    }
+
 }
