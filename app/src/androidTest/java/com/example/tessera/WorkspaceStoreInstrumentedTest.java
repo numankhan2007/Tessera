@@ -5,6 +5,9 @@ import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -128,14 +131,20 @@ public final class WorkspaceStoreInstrumentedTest {
         assertEquals("Alpha",promoted.title);
     }
 
-    @Test public void removingAllFolderChildrenDeletesTheFolder() {
+    @Test public void removingLastEntryFromSingleChildFolderDeletesFolder() throws Exception {
         long first=store.addApp(0,0,0,"com.example.alpha/.Main","Alpha",0);
         long second=store.addApp(0,1,0,"com.example.beta/.Main","Beta",0);
         store.mergeInto(second,first);
-        WorkspaceItem folder=store.find(first);
-        assertTrue(store.removeFolderEntry(folder.id,"com.example.alpha/.Main",null,0));
-        assertTrue(store.removeFolderEntry(folder.id,"com.example.beta/.Main",null,0));
-        assertNull(store.find(folder.id));
+
+        JSONObject backup=new JSONObject(store.exportJson());
+        JSONArray items=backup.getJSONArray("items");
+        items.getJSONObject(0).put("payload","com.example.alpha/.Main|0|Alpha|");
+        assertEquals(1,store.restoreJson(backup.toString()));
+
+        WorkspaceItem singleChildFolder=store.all().get(0);
+        assertEquals(WorkspaceItem.FOLDER,singleChildFolder.type);
+        assertTrue(store.removeFolderEntry(singleChildFolder.id,"com.example.alpha/.Main",null,0));
+        assertNull(store.find(singleChildFolder.id));
     }
 
     @Test public void invalidBackupDoesNotDeleteExistingWorkspaceItems() {
