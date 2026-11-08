@@ -135,7 +135,7 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
                     } else {
                         StringBuilder payload=new StringBuilder();
                         for(String[] child:retained) {
-                            if(payload.length()>0)payload.append('\\n');
+                            if(payload.length()>0)payload.append('\n');
                             payload.append(child[0]).append('|').append(child[1]).append('|').append(child[2]).append('|');
                             if(child.length>=4)payload.append(child[3]);
                         }
