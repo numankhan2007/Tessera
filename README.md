@@ -4,7 +4,7 @@
 
 Tessera is a native Android HOME application designed around a wallpaper-first workspace, expressive motion, deep emerald surfaces and antique-gold accents. It uses Android launcher APIs for app discovery, app launching, shortcuts and widgets; the home screen is not a WebView or a simulated desktop.
 
-> **Current status:** feature-complete core launcher foundation (0.2.6). It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
+> **Current status:** core launcher with the 0.3.0 Obsidian Garden visual refresh. It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
 
 ## Core functionality
 
@@ -19,7 +19,7 @@ Tessera is a native Android HOME application designed around a wallpaper-first w
 | Dock | Persisted dock slots; move items to/from the dock |
 | Repositioning | Long-press an item, choose **Move / Reposition**, then drop it onto a page or dock location |
 | Folders | Create, open, rename and edit folders; remove individual children, with the final child promoted back to a normal home item |
-| App drawer | Native dialog with live label filtering and pin-to-home action |
+| App drawer | Opaque native app-library sheet with live label filtering, app launch and pin-to-home action |
 | App shortcuts | Discover app-published dynamic/manifest shortcuts, pin them and launch them through \`LauncherApps\` |
 | Work profiles | Enumerate profiles Android exposes to the launcher and retain the user's profile serial with pins |
 | Widgets | Native \`AppWidgetHost\` / \`AppWidgetHostView\`; provider selection, Android bind permission, provider configuration, persistence, removal and grid-span resizing |
@@ -44,7 +44,7 @@ Requirements: JDK 17, Android SDK Platform 36, Android SDK Build Tools 36.0.0, G
 gradle --no-daemon :app:assembleDebug
 \`\`\`
 
-The GitHub Actions workflow installs the Android SDK, builds the debug APK, runs Android lint, then audits the generated artifact three times. The audit checks ZIP integrity, package ID, HOME launcher entry, min/target SDK metadata, and APK signature.
+The GitHub Actions workflow installs the Android SDK, builds the debug APK, runs Android lint, audits the generated artifact three times, then runs 11 Android instrumentation tests on an Android 15 emulator. The audit checks ZIP integrity, package ID, HOME launcher entry, min/target SDK metadata, and APK signature.
 
 APK output:
 
@@ -73,7 +73,7 @@ This is a complete installable core launcher, not a claim that every possible la
 - Folder contents are app/shortcut entries; individual children can be removed. Nested folders and custom artwork are not supported.
 - Drawer search currently matches installed app labels; it does not search contacts, settings, files, web content or contextual actions.
 - Workspace icons use the app-provided launcher icons. Licensed Reem Kufi / Amiri / Aref Ruqaa assets are not bundled yet; the UI uses installed Android typefaces as safe fallbacks.
-- Advanced motion systems, custom icon packs, themed folder previews, per-page wallpaper effects and shortcut pinning requests that require vendor confirmation remain future enhancements.
+- The 0.3.0 motion system covers staggered workspace/dock entrances, app-library sheet transitions, staggered drawer rows, ripple feedback and app-press response. More advanced physics-based page transitions, per-page wallpaper effects and custom icon packs remain future enhancements.
 - CI verifies compilation, Android lint, APK archive integrity, package metadata and debug signature. It does not replace installation and gesture/widget testing on a physical device. OEM launchers, work-profile policies, battery optimizers, edge-to-edge insets and individual widgets need device-level QA.
 - A release APK needs a user-owned signing key and signing configuration. The shared debug key is intentionally public and must never be used as a release identity.
 

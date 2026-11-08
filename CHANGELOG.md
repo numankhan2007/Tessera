@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — Obsidian Garden visual redesign
+
+- Rebuilt the home hierarchy with a compact brand/date bar, clear headline, understated workspace sections and a calmer dock.
+- Replaced the heavy green tiles with refined deep-pine icon surfaces, subtle borders, rounded geometry and a restrained ivory/brass/mint palette.
+- Reworked the app library as an opaque, bottom-anchored sheet so wallpaper text no longer competes with app names.
+- Added staggered workspace and dock entrances, a lifting/fading app-library transition, staggered app rows, ripple feedback and a restrained app-press response.
+- Applied sans-serif as the application-wide fallback while keeping expressive typography in selected display elements.
+- Preserved native app discovery, launching, folders, drag/reposition, widgets, shortcuts, backup and restore behavior.
+
 ## 0.2.6
 
 - Prevent widget drag/drop from overlapping any occupied cells across its full grid span.
