@@ -12,8 +12,6 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.LinearGradient;
-import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.Drawable;
@@ -26,6 +24,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
@@ -74,6 +73,7 @@ public final class TesseraHomeView extends LinearLayout {
             GOLD=0xffe7cc75, MINT=0xff9fe1bd, MUTED=0xff9fb2a5;
     private static final int GROUP_ALL=-1, GROUP_SOCIAL=1, GROUP_WORK=2,
             GROUP_MEDIA=3, GROUP_GAMES=4, GROUP_OTHER=5;
+    private static final long AMBIENT_FRAME_DELAY_MS=24L;
     private final Context context;
     private final Callbacks callbacks;
     private final LinearLayout pageStrip;
@@ -89,9 +89,8 @@ public final class TesseraHomeView extends LinearLayout {
     private boolean defaultHome,reducedMotion;
     private Dialog drawerDialog;
     private final Runnable clockTicker=()->updateClock();
-    private final Paint ambientPaint=new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint motePaint=new Paint(Paint.ANTI_ALIAS_FLAG);
-    private LinearGradient atmosphereGradient;
+    private final List<View> floatingElements=new ArrayList<>();
     private ValueAnimator orbitAnimator;
     private long ambientEpoch=SystemClock.uptimeMillis();
     private float scrollProgress;
@@ -138,12 +137,17 @@ public final class TesseraHomeView extends LinearLayout {
         LayoutParams orbitLp=new LayoutParams(dp(58),dp(58));
         orbitLp.leftMargin=dp(10);
         hero.addView(orbit,orbitLp);
-        orbitAnimator=ValueAnimator.ofFloat(-12f,12f);
-        orbitAnimator.setDuration(7600);
+        orbitAnimator=ValueAnimator.ofFloat(-18f,18f);
+        orbitAnimator.setDuration(9200);
         orbitAnimator.setRepeatCount(ValueAnimator.INFINITE);
         orbitAnimator.setRepeatMode(ValueAnimator.REVERSE);
-        orbitAnimator.setInterpolator(new DecelerateInterpolator());
-        orbitAnimator.addUpdateListener(animation->orbit.setRotation((Float)animation.getAnimatedValue()));
+        orbitAnimator.setInterpolator(new LinearInterpolator());
+        orbitAnimator.addUpdateListener(animation->{
+            orbit.setRotation((Float)animation.getAnimatedValue());
+            float pulse=1f+.026f*(float)Math.sin(animation.getAnimatedFraction()*Math.PI);
+            orbit.setScaleX(pulse);
+            orbit.setScaleY(pulse);
+        });
         LayoutParams heroLp=new LayoutParams(-1,dp(66));
         heroLp.topMargin=dp(2);
         addView(hero,heroLp);
@@ -221,44 +225,53 @@ public final class TesseraHomeView extends LinearLayout {
         });
     }
 
-    @Override protected void onSizeChanged(int w,int h,int oldw,int oldh) {
-        super.onSizeChanged(w,h,oldw,oldh);
-        atmosphereGradient=new LinearGradient(0,0,w,h,
-                new int[]{0x1a2a6045,0x0b172d22,0x10233f30,0x1628523d},
-                new float[]{0f,.34f,.72f,1f},Shader.TileMode.CLAMP);
-    }
-
     @Override protected void dispatchDraw(Canvas canvas) {
         drawAtmosphere(canvas);
         super.dispatchDraw(canvas);
-        if(isAttachedToWindow()&&!reducedMotion)postInvalidateDelayed(48);
+        updateFloatingElements();
+        if(isMotionActive())postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
     }
 
     private void drawAtmosphere(Canvas canvas) {
-        if(atmosphereGradient==null)return;
+        // Keep the system wallpaper completely unobstructed; motion is confined to tiny motes.
         float phase=(SystemClock.uptimeMillis()-ambientEpoch)/1000f;
-        float pulse=.84f+.08f*(float)Math.sin(phase*.34f);
-        ambientPaint.setShader(atmosphereGradient);
-        ambientPaint.setAlpha(Math.round(210*pulse));
-        canvas.drawRect(0,0,getWidth(),getHeight(),ambientPaint);
-        ambientPaint.setShader(null);
-
-        // A handful of very faint motes add depth without competing with icons or wallpaper.
+        motePaint.setShader(null);
         motePaint.setStyle(Paint.Style.FILL);
-        for(int i=0;i<5;i++) {
-            float baseX=.16f+((i*37)%77)/100f;
-            float baseY=.15f+((i*29)%72)/100f;
-            float x=(baseX+.004f*(float)Math.sin(phase*.18f+i))*getWidth();
-            float y=(baseY+.004f*(float)Math.cos(phase*.16f+i*1.3f))*getHeight();
-            float twinkle=.2f+.22f*(.5f+.5f*(float)Math.sin(phase*.58f+i*1.9f));
-            motePaint.setColor(Color.argb(Math.round(34*twinkle),190,225,199));
-            canvas.drawCircle(x,y,dp(i%3==0?1.3f:1f),motePaint);
+        for(int i=0;i<8;i++) {
+            float baseX=.10f+((i*31)%79)/100f;
+            float baseY=.14f+((i*23)%68)/100f;
+            float x=(baseX+.007f*(float)Math.sin(phase*.24f+i))*getWidth();
+            float y=(baseY+.007f*(float)Math.cos(phase*.20f+i*1.3f))*getHeight();
+            float twinkle=.5f+.5f*(float)Math.sin(phase*.72f+i*1.7f);
+            motePaint.setColor(Color.argb(Math.round(9+10*twinkle),214,237,222));
+            canvas.drawCircle(x,y,dp(i%3==0?1.25f:0.9f),motePaint);
+        }
+    }
+
+    private boolean isMotionActive() {
+        return !reducedMotion&&ValueAnimator.areAnimatorsEnabled()
+                &&isAttachedToWindow()&&getWindowVisibility()==VISIBLE;
+    }
+
+    private void updateFloatingElements() {
+        if(floatingElements.isEmpty())return;
+        if(!isMotionActive()) {
+            for(View element:floatingElements)element.setTranslationY(0f);
+            return;
+        }
+        float phase=(SystemClock.uptimeMillis()-ambientEpoch)/1000f;
+        for(int i=0;i<floatingElements.size();i++) {
+            View element=floatingElements.get(i);
+            if(element.getParent()==null)continue;
+            float amplitude=dp(i%3==0?1.8f:1.25f);
+            float offset=(float)Math.sin(phase*.78f+i*1.17f)*amplitude;
+            element.setTranslationY(offset);
         }
     }
 
     private void syncOrbitMotion() {
         if(orbitAnimator==null)return;
-        if(reducedMotion||!isAttachedToWindow()) {
+        if(!isMotionActive()) {
             if(orbitAnimator.isRunning())orbitAnimator.cancel();
         } else if(!orbitAnimator.isStarted()) {
             orbitAnimator.start();
@@ -270,12 +283,19 @@ public final class TesseraHomeView extends LinearLayout {
         ambientEpoch=SystemClock.uptimeMillis();
         updateClock();
         syncOrbitMotion();
-        if(!reducedMotion)postInvalidateOnAnimation();
+        if(isMotionActive())postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
+    }
+
+    @Override protected void onWindowVisibilityChanged(int visibility) {
+        super.onWindowVisibilityChanged(visibility);
+        syncOrbitMotion();
+        if(visibility==VISIBLE&&isMotionActive())postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
     }
 
     @Override protected void onDetachedFromWindow() {
         removeCallbacks(clockTicker);
         if(orbitAnimator!=null&&orbitAnimator.isRunning())orbitAnimator.cancel();
+        for(View element:floatingElements)element.setTranslationY(0f);
         if(drawerDialog!=null&&drawerDialog.isShowing())drawerDialog.dismiss();
         super.onDetachedFromWindow();
     }
@@ -290,6 +310,7 @@ public final class TesseraHomeView extends LinearLayout {
         defaultHome=isDefault;widgetViews=widgets;reducedMotion=reduceMotion;
         syncOrbitMotion();
         if(homeHint!=null)homeHint.setVisibility(defaultHome?GONE:VISIBLE);
+        floatingElements.clear();
         pageStrip.removeAllViews();dock.removeAllViews();
 
         int width=Math.max(dp(300),getResources().getDisplayMetrics().widthPixels-getPaddingLeft()-getPaddingRight());
@@ -318,19 +339,26 @@ public final class TesseraHomeView extends LinearLayout {
             List<WorkspaceItem> pageItems=new ArrayList<>();
             for(WorkspaceItem item:items)if(item.page==page)pageItems.add(item);
             if(pageItems.isEmpty()) {
-                column.addView(createEmptySpace(pageIndex),new LayoutParams(-1,dp(432)));
+                column.addView(createEmptySpace(pageIndex),new LayoutParams(-1,dp(260)));
             } else {
                 GridLayout grid=new GridLayout(context);
                 grid.setColumnCount(4);grid.setRowCount(6);
                 grid.setUseDefaultMargins(false);
                 grid.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
                 grid.setColumnOrderPreserved(false);
-                grid.setBackground(round(0x101b3528,dp(25),0x1e52715b));
-                grid.setPadding(dp(2),dp(3),dp(2),dp(3));
+                grid.setBackgroundColor(Color.TRANSPARENT);
+                grid.setPadding(dp(1),dp(2),dp(1),dp(2));
                 grid.setClipChildren(false);
                 grid.setTag(page);
                 grid.setOnDragListener((v,e)->handleDrop(v,e,pageIndex,false));
-                column.addView(grid,new LayoutParams(-1,dp(438)));
+                int usedRows=1;
+                for(WorkspaceItem item:pageItems) {
+                    int bottom=WorkspaceItem.WIDGET.equals(item.type)
+                            ?item.cellY+Math.max(1,item.spanY):item.cellY+1;
+                    usedRows=Math.max(usedRows,Math.min(6,bottom));
+                }
+                int gridHeight=Math.max(84,Math.min(438,usedRows*72+12));
+                column.addView(grid,new LayoutParams(-1,dp(gridHeight)));
                 for(WorkspaceItem item:pageItems)addWorkspaceChild(grid,item);
             }
             animateIn(column,page*42L);
@@ -359,14 +387,14 @@ public final class TesseraHomeView extends LinearLayout {
             dock.animate().alpha(1f).translationY(0).setStartDelay(110)
                     .setDuration(520).setInterpolator(new DecelerateInterpolator(1.7f)).start();
         }
-        postInvalidateOnAnimation();
+        if(isMotionActive())postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
     }
 
     private View createEmptySpace(int page) {
         LinearLayout empty=new LinearLayout(context);
         empty.setOrientation(VERTICAL);
         empty.setGravity(Gravity.CENTER);
-        empty.setBackground(round(0x121d3025,dp(26),0x22466b54));
+        empty.setBackgroundColor(Color.TRANSPARENT);
         TextView glyph=label("✧",35,GOLD,Typeface.create("serif",Typeface.NORMAL));
         glyph.setGravity(Gravity.CENTER);
         empty.addView(glyph,new LayoutParams(-1,dp(62)));
@@ -435,6 +463,7 @@ public final class TesseraHomeView extends LinearLayout {
         tile.setBackground(rippleSurface(0x0014231c,0x2239b87c,dp(15),0x00000000));
         tile.setClipChildren(false);
         FrameLayout iconFrame=new FrameLayout(context);
+        floatingElements.add(iconFrame);
         iconFrame.setBackground(round(SURFACE_RAISED,dp(17),0x34516f5b));
         iconFrame.setElevation(dp(3));
         ImageView icon=new ImageView(context);
@@ -497,6 +526,7 @@ public final class TesseraHomeView extends LinearLayout {
         LinearLayout tile=new LinearLayout(context);
         tile.setOrientation(VERTICAL);tile.setGravity(Gravity.CENTER);
         ImageView icon=new ImageView(context);
+        floatingElements.add(icon);
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
         Drawable d=findIcon(item);
         if(d!=null)icon.setImageDrawable(d);
@@ -809,7 +839,7 @@ public final class TesseraHomeView extends LinearLayout {
             root.setTranslationY(dp(72));
             root.setScaleX(.985f);root.setScaleY(.985f);
             root.animate().alpha(1f).translationY(0).scaleX(1f).scaleY(1f)
-                    .setDuration(560).setInterpolator(new OvershootInterpolator(.55f)).start();
+                    .setDuration(460).setInterpolator(new DecelerateInterpolator(1.45f)).start();
             int stagger=0;
             for(int i=0;i<rows.getChildCount();i++) {
                 View child=rows.getChildAt(i);

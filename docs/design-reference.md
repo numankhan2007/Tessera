@@ -7,6 +7,15 @@ Figma source of truth: https://www.figma.com/design/IGoHRIPtbgqFHT3RhpQ24a
 - `16:131` — Search / portal state
 - `18:2` — Typography direction specimen
 
+## 0.4.3 — Kinetic Home / Adaptive Workspace
+
+- Workspace grids are content-sized from occupied rows and widget spans instead of drawing a large empty six-row panel.
+- Keep the system wallpaper unobstructed; avoid full-screen radial gradients because low-bit-depth surfaces can show visible contour banding. Eight extremely faint motes provide just enough ambient movement.
+- Eight faint motes and restrained per-icon drift add motion at the home-screen level.
+- The hero star uses a continuous reversing orbit with a small breathing pulse.
+- Ambient updates are paced at roughly 40 fps using delayed frame requests, stop when the launcher window is hidden, and respect both Tessera's Reduce Motion setting and Android's global animator scale.
+- The app-library sheet now enters with a controlled deceleration and less overshoot.
+
 ## 0.4.2 — Intelligent Workspace / Minimal Atmosphere
 
 The visual language is a quiet, premium launcher surface rather than a collection of outlined cards.
