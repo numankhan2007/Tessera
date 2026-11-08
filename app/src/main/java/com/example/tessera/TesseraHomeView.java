@@ -342,9 +342,12 @@ public final class TesseraHomeView extends LinearLayout {
             section.addView(pageTitle,new LayoutParams(0,dp(25),1f));
             int appCount=0;
             for(WorkspaceItem item:items)if(item.page==page)appCount++;
-            TextView count=label(appCount==0?"EMPTY":String.format(Locale.getDefault(),"%02d ITEMS",appCount),8,0xff789184,
+            String countLabel=appCount==0?"—":String.format(Locale.getDefault(),"%02d",appCount);
+            TextView count=label(countLabel,8,0xff789184,
                     Typeface.create("sans-serif-medium",Typeface.NORMAL));
-            section.addView(count,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(25)));
+            count.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+            count.setContentDescription(appCount==0?"No items on this page":appCount+" items on this page");
+            section.addView(count,new LayoutParams(dp(30),dp(25)));
             column.addView(section,new LayoutParams(-1,dp(26)));
 
             List<WorkspaceItem> pageItems=new ArrayList<>();
