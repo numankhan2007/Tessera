@@ -3,7 +3,7 @@
 ## 0.4.3 — Kinetic home / adaptive workspace
 
 - Removed the oversized empty workspace panel; the app grid now measures its content rows and widget spans while preserving the full six-row placement model.
-- Replaced the flat ambient wash with three low-contrast, drifting emerald/teal/brass bloom fields and eight faint atmospheric motes.
+- Removed the experimental full-screen bloom renderer after visual review exposed contour banding; retained eight extremely faint drifting motes while leaving the system wallpaper unobstructed.
 - Added a throttled roughly 40 fps ambient redraw loop with gentle per-icon drift, keeping the main looper available between frames.
 - Added a breathing pulse to the slow reversing hero-star orbit; all custom movement stops when Reduce Motion is enabled, the launcher window is hidden, or Android disables animator motion globally.
 - Refined the app-library sheet entrance to use a controlled deceleration instead of a pronounced overshoot.
