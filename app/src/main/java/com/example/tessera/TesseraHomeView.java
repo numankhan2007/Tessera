@@ -1,6 +1,7 @@
 package com.example.tessera;
 
 import android.app.AlertDialog;
+import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.ClipData;
@@ -91,6 +92,7 @@ public final class TesseraHomeView extends LinearLayout {
     private final Paint ambientPaint=new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint motePaint=new Paint(Paint.ANTI_ALIAS_FLAG);
     private RadialGradient auroraOne,auroraTwo;
+    private ValueAnimator orbitAnimator;
     private long ambientEpoch=SystemClock.uptimeMillis();
     private float scrollProgress;
 
@@ -136,11 +138,12 @@ public final class TesseraHomeView extends LinearLayout {
         LayoutParams orbitLp=new LayoutParams(dp(58),dp(58));
         orbitLp.leftMargin=dp(10);
         hero.addView(orbit,orbitLp);
-        if(!reducedMotion) {
-            orbit.setRotation(-10f);
-            orbit.animate().rotation(10f).setDuration(5200).setInterpolator(new DecelerateInterpolator())
-                    .withEndAction(()->orbit.animate().rotation(-10f).setDuration(5200).start()).start();
-        }
+        orbitAnimator=ValueAnimator.ofFloat(-12f,12f);
+        orbitAnimator.setDuration(7600);
+        orbitAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        orbitAnimator.setRepeatMode(ValueAnimator.REVERSE);
+        orbitAnimator.setInterpolator(new DecelerateInterpolator());
+        orbitAnimator.addUpdateListener(animation->orbit.setRotation((Float)animation.getAnimatedValue()));
         LayoutParams heroLp=new LayoutParams(-1,dp(66));
         heroLp.topMargin=dp(2);
         addView(hero,heroLp);
@@ -220,10 +223,13 @@ public final class TesseraHomeView extends LinearLayout {
 
     @Override protected void onSizeChanged(int w,int h,int oldw,int oldh) {
         super.onSizeChanged(w,h,oldw,oldh);
-        auroraOne=new RadialGradient(w*.84f,h*.23f,dp(260),
-                new int[]{0x244eaa78,0x10285e45,0x00000000},null,Shader.TileMode.CLAMP);
-        auroraTwo=new RadialGradient(w*.10f,h*.72f,dp(235),
-                new int[]{0x183e8669,0x0d244936,0x00000000},null,Shader.TileMode.CLAMP);
+        float radius=Math.max(w,h)*.96f;
+        auroraOne=new RadialGradient(w*.78f,h*.22f,radius,
+                new int[]{0x194b765b,0x0b294838,0x00000000},
+                new float[]{0f,.48f,1f},Shader.TileMode.CLAMP);
+        auroraTwo=new RadialGradient(w*.16f,h*.73f,radius*.86f,
+                new int[]{0x123e6c54,0x07243f31,0x00000000},
+                new float[]{0f,.5f,1f},Shader.TileMode.CLAMP);
     }
 
     @Override protected void dispatchDraw(Canvas canvas) {
@@ -235,23 +241,37 @@ public final class TesseraHomeView extends LinearLayout {
     private void drawAtmosphere(Canvas canvas) {
         if(auroraOne==null||auroraTwo==null)return;
         float phase=(SystemClock.uptimeMillis()-ambientEpoch)/1000f;
-        float pulse=.78f+.12f*(float)Math.sin(phase*.48f);
+        float pulse=.86f+.07f*(float)Math.sin(phase*.36f);
+        float drift=dp(7)*(float)Math.sin(phase*.16f);
+        canvas.save();
+        canvas.translate(drift,0);
+        // Draw the gradients across the whole canvas: no clipped circles or hard radial edges.
         ambientPaint.setShader(auroraOne);
-        ambientPaint.setAlpha(Math.round(255*pulse));
-        canvas.drawCircle(getWidth()*.84f,getHeight()*.23f,
-                dp(260)*(1f+.025f*(float)Math.sin(phase*.31f)),ambientPaint);
-        ambientPaint.setShader(auroraTwo);
         ambientPaint.setAlpha(Math.round(210*pulse));
-        canvas.drawCircle(getWidth()*.10f,getHeight()*.72f,
-                dp(235)*(1f+.035f*(float)Math.cos(phase*.27f)),ambientPaint);
+        canvas.drawRect(0,0,getWidth(),getHeight(),ambientPaint);
+        canvas.translate(-drift*1.65f,0);
+        ambientPaint.setShader(auroraTwo);
+        ambientPaint.setAlpha(Math.round(150*pulse));
+        canvas.drawRect(0,0,getWidth(),getHeight(),ambientPaint);
         ambientPaint.setShader(null);
+        canvas.restore();
+
         motePaint.setStyle(Paint.Style.FILL);
-        for(int i=0;i<7;i++) {
-            float x=(.12f+((i*37)%83)/100f)*getWidth();
-            float y=(.12f+((i*29)%74)/100f)*getHeight();
-            float twinkle=.25f+.35f*(.5f+.5f*(float)Math.sin(phase*.72f+i*1.7f));
-            motePaint.setColor(Color.argb(Math.round(255*twinkle),180,221,190));
-            canvas.drawCircle(x,y,dp(i%3==0?1.5f:1f),motePaint);
+        for(int i=0;i<5;i++) {
+            float x=(.16f+((i*37)%77)/100f)*getWidth();
+            float y=(.15f+((i*29)%72)/100f)*getHeight();
+            float twinkle=.22f+.20f*(.5f+.5f*(float)Math.sin(phase*.58f+i*1.9f));
+            motePaint.setColor(Color.argb(Math.round(42*twinkle),190,225,199));
+            canvas.drawCircle(x,y,dp(i%3==0?1.35f:1f),motePaint);
+        }
+    }
+
+    private void syncOrbitMotion() {
+        if(orbitAnimator==null)return;
+        if(reducedMotion||!isAttachedToWindow()) {
+            if(orbitAnimator.isRunning())orbitAnimator.cancel();
+        } else if(!orbitAnimator.isStarted()) {
+            orbitAnimator.start();
         }
     }
 
@@ -259,11 +279,13 @@ public final class TesseraHomeView extends LinearLayout {
         super.onAttachedToWindow();
         ambientEpoch=SystemClock.uptimeMillis();
         updateClock();
+        syncOrbitMotion();
         if(!reducedMotion)postInvalidateOnAnimation();
     }
 
     @Override protected void onDetachedFromWindow() {
         removeCallbacks(clockTicker);
+        if(orbitAnimator!=null&&orbitAnimator.isRunning())orbitAnimator.cancel();
         if(drawerDialog!=null&&drawerDialog.isShowing())drawerDialog.dismiss();
         super.onDetachedFromWindow();
     }
@@ -276,6 +298,7 @@ public final class TesseraHomeView extends LinearLayout {
         currentPage=Math.max(0,Math.min(pageCount-1,currentPage));
         scrollProgress=currentPage;
         defaultHome=isDefault;widgetViews=widgets;reducedMotion=reduceMotion;
+        syncOrbitMotion();
         if(homeHint!=null)homeHint.setVisibility(defaultHome?GONE:VISIBLE);
         pageStrip.removeAllViews();dock.removeAllViews();
 
@@ -296,7 +319,7 @@ public final class TesseraHomeView extends LinearLayout {
             section.addView(pageTitle,new LayoutParams(0,dp(25),1f));
             int appCount=0;
             for(WorkspaceItem item:items)if(item.page==page)appCount++;
-            TextView count=label(appCount==0?"READY FOR YOU":appCount+" PLACED",8,0xff789184,
+            TextView count=label(appCount==0?"READY FOR YOU":appCount+" APPS",8,0xff789184,
                     Typeface.create("sans-serif-medium",Typeface.NORMAL));
             count.setLetterSpacing(.11f);
             section.addView(count,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(25)));

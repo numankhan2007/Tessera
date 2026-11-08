@@ -46,7 +46,7 @@ jobs:
             echo "APK verification pass ${pass}/3"
             unzip -tq "$APK"
             "$AAPT" dump badging "$APK" > /tmp/tessera-badging.txt
-            grep -Fq "package: name='com.example.tessera.debug' versionCode='10' versionName='0.4.0-debug'" /tmp/tessera-badging.txt
+            grep -Fq "package: name='com.example.tessera.debug' versionCode='11' versionName='0.4.1-debug'" /tmp/tessera-badging.txt
             grep -Eq "^launchable-activity:" /tmp/tessera-badging.txt
             grep -Fq "sdkVersion:'26'" /tmp/tessera-badging.txt
             grep -Fq "targetSdkVersion:'36'" /tmp/tessera-badging.txt
@@ -100,11 +100,25 @@ jobs:
           disable-linux-hw-accel: false
           disable-animations: true
           script: |
-            test_status=0
-            gradle --no-daemon :app:connectedDebugAndroidTest --stacktrace --info || test_status=$?
+            gradle --no-daemon :app:connectedDebugAndroidTest --stacktrace --info || true
             mkdir -p artifacts/ui
-            adb pull /sdcard/Pictures/TesseraVisual artifacts/ui/ || test_status=$?
-            exit "$test_status"
+            adb pull /sdcard/Pictures/TesseraVisual artifacts/ui/ || true
+            XML="$(find app/build/outputs/androidTest-results/connected -name 'TEST-*.xml' -print -quit)"
+            test -n "$XML" || { echo "JUnit XML report missing"; exit 1; }
+            grep -Eq 'tests="12" failures="0" errors="0"' "$XML" || {
+              echo "JUnit report contains failed, skipped or incomplete tests"
+              cat "$XML"
+              exit 1
+            }
+            PNG_COUNT="$(find artifacts/ui/TesseraVisual -maxdepth 1 -type f -name '*.png' | wc -l)"
+            test "$PNG_COUNT" -eq 2 || {
+              echo "Expected two visual screenshots, found $PNG_COUNT"
+              find artifacts/ui -type f -ls || true
+              exit 1
+            }
+            test -s artifacts/ui/TesseraVisual/home.png
+            test -s artifacts/ui/TesseraVisual/app-library.png
+            echo "All 12 Android tests passed and both visual captures were exported."
       - name: Upload instrumentation test reports
         if: always()
         uses: actions/upload-artifact@v4

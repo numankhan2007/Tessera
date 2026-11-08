@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.1 — Refined aurora / motion polish
+
+- Replaced clipped radial circles with low-contrast, full-canvas aurora gradients to remove visible rings and hard edges.
+- Reduced ambient glow and mote intensity so app icons and labels remain the visual focus.
+- Added a continuously reversing star-orbit animation that cancels when detached and respects Reduce Motion.
+- Shortened workspace page count text to prevent clipping on narrow phone screens.
+- Hardened Android 15 CI acceptance: 12/12 JUnit tests and both non-empty home/app-library screenshots are required for a successful run.
+
 ## 0.4.0 — Intelligent workspace and kinetic atmosphere
 
 - Added a low-energy animated aurora atmosphere with floating motes; it stops when the view is detached and respects Reduce Motion.
