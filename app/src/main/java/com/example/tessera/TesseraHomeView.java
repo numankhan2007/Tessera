@@ -12,8 +12,6 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.RadialGradient;
-import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.Drawable;
@@ -91,11 +89,7 @@ public final class TesseraHomeView extends LinearLayout {
     private boolean defaultHome,reducedMotion;
     private Dialog drawerDialog;
     private final Runnable clockTicker=()->updateClock();
-    private final Paint ambientPaint=new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint motePaint=new Paint(Paint.ANTI_ALIAS_FLAG);
-    private RadialGradient emeraldBloom;
-    private RadialGradient tealBloom;
-    private RadialGradient goldBloom;
     private final List<View> floatingElements=new ArrayList<>();
     private ValueAnimator orbitAnimator;
     private long ambientEpoch=SystemClock.uptimeMillis();
@@ -231,19 +225,6 @@ public final class TesseraHomeView extends LinearLayout {
         });
     }
 
-    @Override protected void onSizeChanged(int w,int h,int oldw,int oldh) {
-        super.onSizeChanged(w,h,oldw,oldh);
-        emeraldBloom=new RadialGradient(0f,0f,1f,
-                new int[]{0x405ac38a,0x1d3d956a,0x003d956a},
-                new float[]{0f,.46f,1f},Shader.TileMode.CLAMP);
-        tealBloom=new RadialGradient(0f,0f,1f,
-                new int[]{0x3048aa9a,0x17327f73,0x00327f73},
-                new float[]{0f,.48f,1f},Shader.TileMode.CLAMP);
-        goldBloom=new RadialGradient(0f,0f,1f,
-                new int[]{0x20d8b56b,0x0d93734d,0x0093734d},
-                new float[]{0f,.42f,1f},Shader.TileMode.CLAMP);
-    }
-
     @Override protected void dispatchDraw(Canvas canvas) {
         drawAtmosphere(canvas);
         super.dispatchDraw(canvas);
@@ -252,20 +233,8 @@ public final class TesseraHomeView extends LinearLayout {
     }
 
     private void drawAtmosphere(Canvas canvas) {
-        if(emeraldBloom==null||tealBloom==null||goldBloom==null)return;
+        // Keep the system wallpaper completely unobstructed; motion is confined to tiny motes.
         float phase=(SystemClock.uptimeMillis()-ambientEpoch)/1000f;
-        float driftA=(float)Math.sin(phase*.19f);
-        float driftB=(float)Math.cos(phase*.15f);
-        drawBloom(canvas,emeraldBloom,
-                getWidth()*(.18f+.035f*driftA),getHeight()*(.23f+.045f*driftB),
-                getWidth()*.67f,getHeight()*.54f);
-        drawBloom(canvas,tealBloom,
-                getWidth()*(.84f+.035f*driftB),getHeight()*(.73f+.04f*driftA),
-                getWidth()*.55f,getHeight()*.43f);
-        drawBloom(canvas,goldBloom,
-                getWidth()*.54f,getHeight()*(.08f+.018f*driftA),
-                getWidth()*.46f,getHeight()*.27f);
-
         motePaint.setShader(null);
         motePaint.setStyle(Paint.Style.FILL);
         for(int i=0;i<8;i++) {
@@ -274,21 +243,9 @@ public final class TesseraHomeView extends LinearLayout {
             float x=(baseX+.007f*(float)Math.sin(phase*.24f+i))*getWidth();
             float y=(baseY+.007f*(float)Math.cos(phase*.20f+i*1.3f))*getHeight();
             float twinkle=.5f+.5f*(float)Math.sin(phase*.72f+i*1.7f);
-            motePaint.setColor(Color.argb(Math.round(17+17*twinkle),201,233,211));
-            canvas.drawCircle(x,y,dp(i%3==0?1.6f:1.1f),motePaint);
+            motePaint.setColor(Color.argb(Math.round(9+10*twinkle),214,237,222));
+            canvas.drawCircle(x,y,dp(i%3==0?1.25f:0.9f),motePaint);
         }
-    }
-
-    private void drawBloom(Canvas canvas,RadialGradient shader,float x,float y,
-                           float radiusX,float radiusY) {
-        int save=canvas.save();
-        canvas.translate(x,y);
-        canvas.scale(Math.max(1f,radiusX),Math.max(1f,radiusY));
-        ambientPaint.setShader(shader);
-        ambientPaint.setAlpha(255);
-        canvas.drawCircle(0f,0f,1f,ambientPaint);
-        ambientPaint.setShader(null);
-        canvas.restoreToCount(save);
     }
 
     private boolean isMotionActive() {
