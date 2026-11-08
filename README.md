@@ -60,7 +60,7 @@ The CI APK is signed with a stable, repository-included test-only debug key so s
 2. For the first install of this stable-signature line, uninstall older temporary-CI-signed Tessera debug builds first. Export a workspace backup from the older build before uninstalling if you need to preserve its layout. Later builds on this same stable key can update in place.
 3. Open the APK on the Android device and allow installation from the selected source when prompted.
 4. Open Tessera and tap **Set Tessera as your Home app**.
-4. Choose Tessera in Android's Home app role chooser.
+5. Choose Tessera in Android's Home app role chooser.
 
 To pin apps, open the drawer and tap the \`+\` beside an app. Long-press an app in the drawer to reveal **Pin to Home**, **App shortcuts** and **App info**. To move a home item, long-press it, select **Move / Reposition**, then drop it at the target location. Dropping one app on another creates a folder.
 
