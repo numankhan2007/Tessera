@@ -81,7 +81,7 @@ public final class LauncherVisualRegressionTest {
         int width=view.getWidth();
         int height=view.getHeight();
         assertTrue("View has invalid width for "+name+": "+width,width>=320);
-        assertTrue("View has invalid height for "+name+": "+height>=600);
+        assertTrue("View has invalid height for "+name+": "+height,height>=600);
         view.invalidate();
         Bitmap bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
         Canvas canvas=new Canvas(bitmap);
