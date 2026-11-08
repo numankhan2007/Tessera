@@ -248,8 +248,7 @@ public final class TesseraHomeView extends LinearLayout {
         drawAtmosphere(canvas);
         super.dispatchDraw(canvas);
         updateFloatingElements();
-        if(isAttachedToWindow()&&getWindowVisibility()==VISIBLE&&!reducedMotion)
-            postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
+        if(isMotionActive())postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
     }
 
     private void drawAtmosphere(Canvas canvas) {
@@ -292,9 +291,14 @@ public final class TesseraHomeView extends LinearLayout {
         canvas.restoreToCount(save);
     }
 
+    private boolean isMotionActive() {
+        return !reducedMotion&&ValueAnimator.areAnimatorsEnabled()
+                &&isAttachedToWindow()&&getWindowVisibility()==VISIBLE;
+    }
+
     private void updateFloatingElements() {
         if(floatingElements.isEmpty())return;
-        if(reducedMotion||getWindowVisibility()!=VISIBLE) {
+        if(!isMotionActive()) {
             for(View element:floatingElements)element.setTranslationY(0f);
             return;
         }
@@ -310,7 +314,7 @@ public final class TesseraHomeView extends LinearLayout {
 
     private void syncOrbitMotion() {
         if(orbitAnimator==null)return;
-        if(reducedMotion||!isAttachedToWindow()||getWindowVisibility()!=VISIBLE) {
+        if(!isMotionActive()) {
             if(orbitAnimator.isRunning())orbitAnimator.cancel();
         } else if(!orbitAnimator.isStarted()) {
             orbitAnimator.start();
@@ -322,13 +326,13 @@ public final class TesseraHomeView extends LinearLayout {
         ambientEpoch=SystemClock.uptimeMillis();
         updateClock();
         syncOrbitMotion();
-        if(!reducedMotion)postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
+        if(isMotionActive())postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
     }
 
     @Override protected void onWindowVisibilityChanged(int visibility) {
         super.onWindowVisibilityChanged(visibility);
         syncOrbitMotion();
-        if(visibility==VISIBLE&&!reducedMotion)postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
+        if(visibility==VISIBLE&&isMotionActive())postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
     }
 
     @Override protected void onDetachedFromWindow() {
@@ -426,7 +430,7 @@ public final class TesseraHomeView extends LinearLayout {
             dock.animate().alpha(1f).translationY(0).setStartDelay(110)
                     .setDuration(520).setInterpolator(new DecelerateInterpolator(1.7f)).start();
         }
-        postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
+        if(isMotionActive())postInvalidateDelayed(AMBIENT_FRAME_DELAY_MS);
     }
 
     private View createEmptySpace(int page) {
