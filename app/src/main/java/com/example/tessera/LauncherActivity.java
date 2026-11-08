@@ -478,10 +478,6 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
         if(launcherApps==null) {
             Toast.makeText(this,"App shortcuts require Android 7.1 or newer.",Toast.LENGTH_SHORT).show();return;
         }
-        if(workspaceStore.containsWorkspaceEntry(app.componentName.flattenToString(),app.userSerial,shortcut.getId())) {
-            Toast.makeText(this,"This shortcut is already on Home.",Toast.LENGTH_SHORT).show();
-            return;
-        }
         try {
             LauncherApps.ShortcutQuery query=new LauncherApps.ShortcutQuery()
                     .setPackage(app.packageName)
@@ -511,6 +507,10 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
     }
 
     private void pinShortcut(LauncherApp app,ShortcutInfo shortcut) {
+        if(workspaceStore.containsWorkspaceEntry(app.componentName.flattenToString(),app.userSerial,shortcut.getId())) {
+            Toast.makeText(this,"This shortcut is already on Home.",Toast.LENGTH_SHORT).show();
+            return;
+        }
         try {
             LauncherApps.ShortcutQuery query=new LauncherApps.ShortcutQuery()
                     .setPackage(app.packageName)
