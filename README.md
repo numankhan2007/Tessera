@@ -45,7 +45,7 @@ Requirements: JDK 17, Android SDK Platform 36, Android SDK Build Tools 36.0.0, G
 gradle --no-daemon :app:assembleDebug
 \`\`\`
 
-The GitHub Actions workflow installs the Android SDK, builds the debug APK, runs Android lint, audits the generated artifact three times, then runs 12 Android instrumentation tests on an Android 15 emulator and requires a 12/12 JUnit pass plus both home/app-library PNG captures. The audit checks ZIP integrity, package ID, HOME launcher entry, min/target SDK metadata, and APK signature.
+The GitHub Actions workflow installs the Android SDK, builds the debug APK, runs Android lint, audits the generated artifact three times, then runs 13 Android instrumentation tests on an Android 15 emulator and requires a 13/13 JUnit pass plus both home/app-library PNG captures. The audit checks ZIP integrity, package ID, HOME launcher entry, min/target SDK metadata, and APK signature.
 
 APK output:
 
