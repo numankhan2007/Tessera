@@ -13,7 +13,7 @@ Figma source of truth: https://www.figma.com/design/IGoHRIPtbgqFHT3RhpQ24a
 - Three drifting radial bloom fields create a layered emerald, teal and antique-brass atmosphere without obscuring the wallpaper or app labels.
 - Eight faint motes and restrained per-icon drift add motion at the home-screen level.
 - The hero star uses a continuous reversing orbit with a small breathing pulse.
-- Ambient updates are paced at roughly 40 fps using delayed frame requests, stop when the launcher window is hidden, and respect Reduce Motion.
+- Ambient updates are paced at roughly 40 fps using delayed frame requests, stop when the launcher window is hidden, and respect both Tessera's Reduce Motion setting and Android's global animator scale.
 - The app-library sheet now enters with a controlled deceleration and less overshoot.
 
 ## 0.4.2 — Intelligent Workspace / Minimal Atmosphere
