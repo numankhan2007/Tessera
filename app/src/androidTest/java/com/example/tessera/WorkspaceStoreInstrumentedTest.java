@@ -22,6 +22,7 @@ public final class WorkspaceStoreInstrumentedTest {
     @Before public void setUp() {
         context=ApplicationProvider.getApplicationContext();
         context.deleteDatabase("tessera-workspace.db");
+        context.getSharedPreferences("tessera_workspace",Context.MODE_PRIVATE).edit().clear().commit();
         store=new WorkspaceStore(context);
     }
 
@@ -82,10 +83,11 @@ public final class WorkspaceStoreInstrumentedTest {
         store.mergeInto(b,a);
         WorkspaceItem folder=store.find(a);
         store.removePackage("com.example.alpha",0);
-        folder=store.find(folder.id);
-        assertNotNull(folder);
-        assertFalse(folder.payload.contains("com.example.alpha"));
-        assertTrue(folder.payload.contains("com.example.beta"));
+        WorkspaceItem promoted=store.find(folder.id);
+        assertNotNull(promoted);
+        assertEquals(WorkspaceItem.APP,promoted.type);
+        assertEquals("com.example.beta/.Main",promoted.component);
+        assertEquals("Beta",promoted.title);
         store.removePackage("com.example.beta",0);
         assertTrue(store.all().isEmpty());
     }

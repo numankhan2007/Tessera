@@ -32,7 +32,7 @@ Tessera is a native Android HOME application designed around a wallpaper-first w
 - Workspace entries, folder contents, widget IDs and layout coordinates are stored locally in \`tessera-workspace.db\`.
 - The dock is represented as page \`-1\`; normal workspace pages are numbered from zero.
 - A folder contains the original component, profile serial, title and optional shortcut ID of each child entry.
-- When an app is uninstalled, pinned app and shortcut entries for that package/profile are removed. Folder entries are pruned as well.
+- When an app is uninstalled, pinned app and shortcut entries for that package/profile are removed. Folder children are pruned, and the last remaining child is promoted back to a normal workspace item.
 - App widgets are Android-owned bindings. They are not transferable between devices or installs, so a JSON restore skips widget bindings and tells the user to add those widgets again.
 - App visibility depends on Android package visibility and the profiles available to the current user. \`QUERY_ALL_PACKAGES\` is declared because app discovery is a central launcher function; review the current Google Play policy before Play distribution.
 

@@ -110,21 +110,36 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
                         &&item.component.startsWith(packageName+"/")) {
                     db.delete("workspace_items","_id=?",new String[]{String.valueOf(item.id)});
                 } else if(WorkspaceItem.FOLDER.equals(item.type)&&item.payload!=null) {
-                    StringBuilder kept=new StringBuilder();
+                    ArrayList<String[]> retained=new ArrayList<>();
                     for(String entry:item.payload.split("\\n")) {
                         String[] parts=entry.split("\\|",4);
                         boolean belongs=false;
                         if(parts.length>=2&&parts[0].startsWith(packageName+"/")) {
                             try {belongs=Long.parseLong(parts[1])==userSerial;} catch(NumberFormatException ignored) {}
                         }
-                        if(!belongs) {
-                            if(kept.length()>0)kept.append('\n');
-                            kept.append(entry);
-                        }
+                        if(!belongs&&parts.length>=3)retained.add(parts);
                     }
-                    if(kept.length()==0)db.delete("workspace_items","_id=?",new String[]{String.valueOf(item.id)});
-                    else if(!kept.toString().equals(item.payload)) {
-                        ContentValues v=new ContentValues();v.put("payload",kept.toString());
+                    if(retained.isEmpty()) {
+                        db.delete("workspace_items","_id=?",new String[]{String.valueOf(item.id)});
+                    } else if(retained.size()==1) {
+                        String[] child=retained.get(0);
+                        long serial=0;
+                        try {serial=Long.parseLong(child[1]);} catch(NumberFormatException ignored) {}
+                        String shortcut=child.length>=4?child[3]:"";
+                        ContentValues v=new ContentValues();
+                        v.put("type",shortcut.isEmpty()?WorkspaceItem.APP:WorkspaceItem.SHORTCUT);
+                        v.put("component",child[0]);v.put("title",child[2]);
+                        v.put("payload",shortcut.isEmpty()?null:shortcut);
+                        v.put("span_x",1);v.put("span_y",1);v.put("widget_id",-1);v.put("user_serial",serial);
+                        db.update("workspace_items",v,"_id=?",new String[]{String.valueOf(item.id)});
+                    } else {
+                        StringBuilder payload=new StringBuilder();
+                        for(String[] child:retained) {
+                            if(payload.length()>0)payload.append('\\n');
+                            payload.append(child[0]).append('|').append(child[1]).append('|').append(child[2]).append('|');
+                            if(child.length>=4)payload.append(child[3]);
+                        }
+                        ContentValues v=new ContentValues();v.put("payload",payload.toString());
                         db.update("workspace_items",v,"_id=?",new String[]{String.valueOf(item.id)});
                     }
                 }
@@ -132,7 +147,6 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
             db.setTransactionSuccessful();
         } finally { db.endTransaction(); }
     }
-
     /** Remove one child; promote the final child back to a workspace item. */
     public synchronized boolean removeFolderEntry(long folderId,String component,
                                                    String shortcutId,long userSerial) {

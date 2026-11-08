@@ -8,6 +8,7 @@
 - Make app-catalogue refreshes generation-safe so stale background scans cannot overwrite newer results.
 - Isolate inaccessible work profiles so one profile cannot suppress apps from other profiles.
 - Added regression coverage for duplicate detection across dock and folders.
+- Promote the last remaining folder child back to a normal app/shortcut item when its sibling app is uninstalled.
 
 ## 0.2.5
 
