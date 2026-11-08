@@ -5,7 +5,7 @@
 - Removed the oversized empty workspace panel; the app grid now measures its content rows and widget spans while preserving the full six-row placement model.
 - Replaced the flat ambient wash with three low-contrast, drifting emerald/teal/brass bloom fields and eight faint atmospheric motes.
 - Added a throttled roughly 40 fps ambient redraw loop with gentle per-icon drift, keeping the main looper available between frames.
-- Added a breathing pulse to the slow reversing hero-star orbit; all custom movement stops when Reduce Motion is enabled or the launcher window is hidden.
+- Added a breathing pulse to the slow reversing hero-star orbit; all custom movement stops when Reduce Motion is enabled, the launcher window is hidden, or Android disables animator motion globally.
 - Refined the app-library sheet entrance to use a controlled deceleration instead of a pronounced overshoot.
 - Preserved native app discovery, workspace persistence, folders, dock, shortcuts, widgets, and backup/restore behavior.
 
