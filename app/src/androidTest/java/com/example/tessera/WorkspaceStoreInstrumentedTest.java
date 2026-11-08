@@ -99,4 +99,41 @@ public final class WorkspaceStoreInstrumentedTest {
         store.addWidget(0,cell%4,cell/4,1234,"com.example.widget/.Provider","Weather",2,2);
         assertTrue(store.all().stream().anyMatch(i->WorkspaceItem.WIDGET.equals(i.type)));
     }
+    @Test public void removingFolderChildPromotesTheLastRemainingApp() {
+        long first=store.addApp(0,0,0,"com.example.alpha/.Main","Alpha",17);
+        long second=store.addApp(0,1,0,"com.example.beta/.Main","Beta",17);
+        store.mergeInto(second,first);
+        WorkspaceItem folder=store.find(first);
+        assertTrue(store.removeFolderEntry(folder.id,"com.example.alpha/.Main",null,17));
+        WorkspaceItem promoted=store.find(folder.id);
+        assertNotNull(promoted);
+        assertEquals(WorkspaceItem.APP,promoted.type);
+        assertEquals("com.example.beta/.Main",promoted.component);
+        assertEquals("Beta",promoted.title);
+        assertEquals(17,promoted.userSerial);
+        assertFalse(store.removeFolderEntry(folder.id,"com.example.alpha/.Main",null,17));
+    }
+
+    @Test public void removingFolderShortcutDoesNotRemoveParentApplication() {
+        long parent=store.addApp(0,0,0,"com.example.alpha/.Main","Alpha",17);
+        long shortcut=store.addShortcut(0,1,0,"com.example.alpha/.Main","compose","Compose",17);
+        store.mergeInto(shortcut,parent);
+        WorkspaceItem folder=store.find(parent);
+        assertTrue(store.removeFolderEntry(folder.id,"com.example.alpha/.Main","compose",17));
+        WorkspaceItem promoted=store.find(folder.id);
+        assertNotNull(promoted);
+        assertEquals(WorkspaceItem.APP,promoted.type);
+        assertEquals("Alpha",promoted.title);
+    }
+
+    @Test public void removingAllFolderChildrenDeletesTheFolder() {
+        long first=store.addApp(0,0,0,"com.example.alpha/.Main","Alpha",0);
+        long second=store.addApp(0,1,0,"com.example.beta/.Main","Beta",0);
+        store.mergeInto(second,first);
+        WorkspaceItem folder=store.find(first);
+        assertTrue(store.removeFolderEntry(folder.id,"com.example.alpha/.Main",null,0));
+        assertTrue(store.removeFolderEntry(folder.id,"com.example.beta/.Main",null,0));
+        assertNull(store.find(folder.id));
+    }
+
 }

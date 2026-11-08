@@ -133,6 +133,53 @@ public final class WorkspaceStore extends SQLiteOpenHelper {
         } finally { db.endTransaction(); }
     }
 
+    /** Remove one child; promote the final child back to a workspace item. */
+    public synchronized boolean removeFolderEntry(long folderId,String component,
+                                                   String shortcutId,long userSerial) {
+        WorkspaceItem folder=find(folderId);
+        if(folder==null||!WorkspaceItem.FOLDER.equals(folder.type)||folder.payload==null)return false;
+        ArrayList<String[]> retained=new ArrayList<>();
+        boolean removed=false;
+        for(String entry:folder.payload.split("\\n")) {
+            String[] parts=entry.split("\\|",4);
+            boolean matches=false;
+            if(parts.length>=3&&parts[0].equals(component)) {
+                long serial=0;
+                try {serial=Long.parseLong(parts[1]);} catch(NumberFormatException ignored) {}
+                String storedShortcut=parts.length>=4?parts[3]:"";
+                matches=serial==userSerial&&
+                        (shortcutId==null?storedShortcut.isEmpty():shortcutId.equals(storedShortcut));
+            }
+            if(matches&&!removed)removed=true;
+            else if(parts.length>=3)retained.add(parts);
+        }
+        if(!removed)return false;
+        SQLiteDatabase db=getWritableDatabase();
+        if(retained.isEmpty()) {
+            db.delete("workspace_items","_id=?",new String[]{String.valueOf(folderId)});
+        } else if(retained.size()==1) {
+            String[] child=retained.get(0);
+            long serial=0;
+            try {serial=Long.parseLong(child[1]);} catch(NumberFormatException ignored) {}
+            String shortcut=child.length>=4?child[3]:"";
+            ContentValues v=new ContentValues();
+            v.put("type",shortcut.isEmpty()?WorkspaceItem.APP:WorkspaceItem.SHORTCUT);
+            v.put("component",child[0]);v.put("title",child[2]);
+            v.put("payload",shortcut.isEmpty()?null:shortcut);
+            v.put("span_x",1);v.put("span_y",1);v.put("widget_id",-1);v.put("user_serial",serial);
+            db.update("workspace_items",v,"_id=?",new String[]{String.valueOf(folderId)});
+        } else {
+            StringBuilder payload=new StringBuilder();
+            for(String[] child:retained) {
+                if(payload.length()>0)payload.append('\n');
+                payload.append(child[0]).append('|').append(child[1]).append('|').append(child[2]).append('|');
+                if(child.length>=4)payload.append(child[3]);
+            }
+            ContentValues v=new ContentValues();v.put("payload",payload.toString());
+            db.update("workspace_items",v,"_id=?",new String[]{String.valueOf(folderId)});
+        }
+        return true;
+    }
     public synchronized void renameFolder(long id,String title) {
         ContentValues v=new ContentValues();v.put("title",title);
         getWritableDatabase().update("workspace_items",v,"_id=? AND type=?",

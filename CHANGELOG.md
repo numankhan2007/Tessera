@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2
+
+- Added per-child folder removal with safe promotion when only one child remains.
+- Added a long-press folder item action to remove an app or shortcut from its folder.
+- Removed manual orientation config handling so Android recreates the launcher with correct dimensions.
+- Added regression tests for folder child removal and folder deletion.
+
 ## 0.2.1
 
 - Fixed restoration of the fifth dock slot from workspace JSON backups.

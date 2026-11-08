@@ -514,18 +514,41 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
         if(titles.isEmpty()) {
             Toast.makeText(this,"This folder is empty.",Toast.LENGTH_SHORT).show();return;
         }
-        new AlertDialog.Builder(this).setTitle(folder.title==null?"Folder":folder.title)
+        AlertDialog dialog=new AlertDialog.Builder(this)
+                .setTitle(folder.title==null?"Folder":folder.title)
                 .setItems(titles.toArray(new String[0]),(d,which)->{
                     String[] parts=parsed.get(which);
-                    long serial;
-                    try {serial=Long.parseLong(parts[1]);}catch(Exception e){serial=0;}
-                    WorkspaceItem child=new WorkspaceItem(-1,folder.page,0,0,1,1,
-                            WorkspaceItem.APP,parts[0],parts[2],parts.length>3?parts[3]:null,-1,serial);
-                    if(parts.length>3&&!parts[3].isEmpty())child.type=WorkspaceItem.SHORTCUT;
+                    WorkspaceItem child=folderChild(folder,parts,parseSerial(parts));
                     onLaunchItem(child);
-                }).setNegativeButton("Close",null).show();
+                }).setNegativeButton("Close",null).create();
+        dialog.setOnShowListener(d->dialog.getListView().setOnItemLongClickListener((parent,view,position,id)->{
+            String[] parts=parsed.get(position);
+            long serial=parseSerial(parts);
+            String shortcutId=parts.length>=4&&!parts[3].isEmpty()?parts[3]:null;
+            new AlertDialog.Builder(this).setTitle("Remove from folder")
+                    .setMessage("Remove "+parts[2]+" from "+(folder.title==null?"Folder":folder.title)+"?")
+                    .setPositiveButton("Remove",(confirm,which)->{
+                        workspaceStore.removeFolderEntry(folder.id,parts[0],shortcutId,serial);
+                        WorkspaceItem updated=workspaceStore.find(folder.id);
+                        renderWorkspace();
+                        dialog.dismiss();
+                        if(updated!=null&&WorkspaceItem.FOLDER.equals(updated.type))openFolder(updated);
+                    }).setNegativeButton("Cancel",null).show();
+            return true;
+        }));
+        dialog.show();
     }
 
+    private long parseSerial(String[] parts) {
+        try {return Long.parseLong(parts[1]);} catch(Exception e) {return 0;}
+    }
+
+    private WorkspaceItem folderChild(WorkspaceItem folder,String[] parts,long serial) {
+        String shortcut=parts.length>=4?parts[3]:null;
+        return new WorkspaceItem(-1,folder.page,0,0,1,1,
+                shortcut==null||shortcut.isEmpty()?WorkspaceItem.APP:WorkspaceItem.SHORTCUT,
+                parts[0],parts[2],shortcut,-1,serial);
+    }
     private void showWidgetPicker() {
         List<AppWidgetProviderInfo> providers=widgetManager.getInstalledProviders();
         Collections.sort(providers,Comparator.comparing(p->String.valueOf(p.loadLabel(getPackageManager()))

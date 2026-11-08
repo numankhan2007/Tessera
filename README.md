@@ -4,7 +4,7 @@
 
 Tessera is a native Android HOME application designed around a wallpaper-first workspace, expressive motion, deep emerald surfaces and antique-gold accents. It uses Android launcher APIs for app discovery, app launching, shortcuts and widgets; the home screen is not a WebView or a simulated desktop.
 
-> **Current status:** feature-complete core launcher foundation (0.2.1). It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
+> **Current status:** feature-complete core launcher foundation (0.2.2). It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
 
 ## Core functionality
 
@@ -18,7 +18,7 @@ Tessera is a native Android HOME application designed around a wallpaper-first w
 | Home pins | Pin installed applications from the searchable drawer |
 | Dock | Persisted dock slots; move items to/from the dock |
 | Repositioning | Long-press an item, choose **Move / Reposition**, then drop it onto a page or dock location |
-| Folders | Drop an app onto another app to create a folder; drop more apps onto a folder to add them; open, rename and remove folders |
+| Folders | Create, open, rename and edit folders; remove individual children, with the final child promoted back to a normal home item |
 | App drawer | Native dialog with live label filtering and pin-to-home action |
 | App shortcuts | Discover app-published dynamic/manifest shortcuts, pin them and launch them through \`LauncherApps\` |
 | Work profiles | Enumerate profiles Android exposes to the launcher and retain the user's profile serial with pins |
@@ -69,7 +69,7 @@ This is a complete installable core launcher, not a claim that every possible la
 
 - Widget layout uses a four-column grid with provider-derived initial spans and menu-based span resizing. It does not yet have drag handles, arbitrary pixel-level resizing or guaranteed behavior for every vendor widget.
 - Restored backups intentionally omit widget bindings because Android widget IDs and bind grants are device-specific.
-- Folder contents are app/shortcut entries; folders do not yet support nested folders or custom artwork.
+- Folder contents are app/shortcut entries; individual children can be removed. Nested folders and custom artwork are not supported.
 - Drawer search currently matches installed app labels; it does not search contacts, settings, files, web content or contextual actions.
 - Workspace icons use the app-provided launcher icons. Licensed Reem Kufi / Amiri / Aref Ruqaa assets are not bundled yet; the UI uses installed Android typefaces as safe fallbacks.
 - Advanced motion systems, custom icon packs, themed folder previews, per-page wallpaper effects and shortcut pinning requests that require vendor confirmation remain future enhancements.
