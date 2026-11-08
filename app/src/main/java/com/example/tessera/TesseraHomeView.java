@@ -6,6 +6,7 @@ import android.app.Dialog;
 import android.content.ClipData;
 import android.content.res.ColorStateList;
 import android.content.pm.ApplicationInfo;
+import android.os.SystemClock;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Canvas;
