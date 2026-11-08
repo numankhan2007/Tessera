@@ -46,7 +46,7 @@ jobs:
             echo "APK verification pass ${pass}/3"
             unzip -tq "$APK"
             "$AAPT" dump badging "$APK" > /tmp/tessera-badging.txt
-            grep -Fq "package: name='com.example.tessera.debug' versionCode='13' versionName='0.4.3-debug'" /tmp/tessera-badging.txt
+            grep -Fq "package: name='com.example.tessera.debug' versionCode='14' versionName='0.4.4-debug'" /tmp/tessera-badging.txt
             grep -Eq "^launchable-activity:" /tmp/tessera-badging.txt
             grep -Fq "sdkVersion:'26'" /tmp/tessera-badging.txt
             grep -Fq "targetSdkVersion:'36'" /tmp/tessera-badging.txt
