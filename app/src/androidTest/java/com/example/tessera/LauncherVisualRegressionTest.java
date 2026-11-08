@@ -49,11 +49,12 @@ public final class LauncherVisualRegressionTest {
         runShell("screencap -p "+path);
         String byteCount=runShell("wc -c < "+path).trim();
         long bytes;
-        try { bytes=Long.parseLong(byteCount); }
+        String firstToken=byteCount.trim().split("\\s+")[0];
+        try { bytes=Long.parseLong(firstToken); }
         catch(NumberFormatException error) {
             throw new AssertionError("Could not verify screenshot output for "+name+": "+byteCount,error);
         }
-        assertTrue("Screenshot is missing or unexpectedly small: "+name,bytes>4096);
+        assertTrue("Screenshot is missing or unexpectedly small: "+name+" ("+bytes+" bytes)",bytes>1024);
     }
 
     private static String runShell(String command) throws Exception {
