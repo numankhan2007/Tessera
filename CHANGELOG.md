@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5
+
+- Persist the last selected workspace page across Activity recreation and app restarts.
+- Pin new apps and shortcuts onto the page currently being viewed.
+- Automatically navigate to a newly created page when the current page is full.
+- Removed duplicate app-catalogue refresh during initial Activity startup.
+
 ## 0.2.4
 
 - Added a stable, test-only debug signing key so later CI APKs can update the installed test build in place.

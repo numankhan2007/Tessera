@@ -4,7 +4,7 @@
 
 Tessera is a native Android HOME application designed around a wallpaper-first workspace, expressive motion, deep emerald surfaces and antique-gold accents. It uses Android launcher APIs for app discovery, app launching, shortcuts and widgets; the home screen is not a WebView or a simulated desktop.
 
-> **Current status:** feature-complete core launcher foundation (0.2.4). It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
+> **Current status:** feature-complete core launcher foundation (0.2.5). It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
 
 ## Core functionality
 
@@ -14,8 +14,8 @@ Tessera is a native Android HOME application designed around a wallpaper-first w
 | App catalogue | \`LauncherApps\` enumeration across accessible user profiles |
 | App lifecycle | App install, removal, package change, profile-aware refresh and pinned-item cleanup |
 | App launch | Native \`LauncherApps.startMainActivity()\` with the correct user profile |
-| Workspace pages | Multiple horizontal pages, persisted in SQLite |
-| Home pins | Pin installed applications from the searchable drawer |
+| Workspace pages | Multiple horizontal pages, persisted in SQLite; remembers the last page shown |
+| Home pins | Pin installed applications from the searchable drawer onto the current workspace page |
 | Dock | Persisted dock slots; move items to/from the dock |
 | Repositioning | Long-press an item, choose **Move / Reposition**, then drop it onto a page or dock location |
 | Folders | Create, open, rename and edit folders; remove individual children, with the final child promoted back to a normal home item |

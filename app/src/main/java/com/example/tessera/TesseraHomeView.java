@@ -53,6 +53,7 @@ public final class TesseraHomeView extends LinearLayout {
         void onBackupWorkspace();
         void onRestoreWorkspace();
         void onReducedMotionChanged(boolean enabled);
+        void onCurrentPageChanged(int page);
     }
 
     private static final int BG=0xee10251e, PANEL=0xd9234035, IVORY=0xfff7f2e1,
@@ -139,7 +140,11 @@ public final class TesseraHomeView extends LinearLayout {
 
         pager.setOnScrollChangeListener((View v,int sx,int sy,int ox,int oy)->{
             int w=Math.max(1,pager.getWidth());
-            currentPage=Math.max(0,Math.min(pageCount-1,Math.round((float)sx/w)));
+            int nextPage=Math.max(0,Math.min(pageCount-1,Math.round((float)sx/w)));
+            if(nextPage!=currentPage) {
+                currentPage=nextPage;
+                callbacks.onCurrentPageChanged(currentPage);
+            }
             updateIndicator();
         });
     }
@@ -159,7 +164,9 @@ public final class TesseraHomeView extends LinearLayout {
                        boolean isDefault,Map<Integer,View> widgets,boolean reduceMotion) {
         items=saved==null?new ArrayList<>():new ArrayList<>(saved);
         apps=installed==null?new ArrayList<>():new ArrayList<>(installed);
-        pageCount=Math.max(1,pages);defaultHome=isDefault;widgetViews=widgets;reducedMotion=reduceMotion;
+        pageCount=Math.max(1,pages);
+        currentPage=Math.max(0,Math.min(pageCount-1,currentPage));
+        defaultHome=isDefault;widgetViews=widgets;reducedMotion=reduceMotion;
         if(homeHint!=null)homeHint.setVisibility(defaultHome?GONE:VISIBLE);
         pageStrip.removeAllViews();dock.removeAllViews();
         int width=Math.max(dp(300),getResources().getDisplayMetrics().widthPixels-getPaddingLeft()-getPaddingRight());
@@ -385,6 +392,23 @@ public final class TesseraHomeView extends LinearLayout {
                 .setView(box).setPositiveButton("Done",(d,w)->callbacks.onReducedMotionChanged(motion.isChecked()))
                 .setNegativeButton("Cancel",null).create();
         dialog.show();
+    }
+
+    public int getCurrentPage() { return currentPage; }
+
+    public void setCurrentPage(int page) {
+        // The caller may set this before the first render, when pageCount is still its default.
+        int next=Math.max(0,page);
+        if(next!=currentPage) {
+            currentPage=next;
+            updateIndicator();
+            callbacks.onCurrentPageChanged(currentPage);
+        }
+        pager.post(()->{
+            int target=currentPage*Math.max(1,pager.getWidth());
+            if(reducedMotion)pager.scrollTo(target,0);
+            else pager.smoothScrollTo(target,0);
+        });
     }
 
     public void openDrawer() {

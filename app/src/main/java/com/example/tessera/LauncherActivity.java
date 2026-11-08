@@ -94,6 +94,7 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
         reducedMotion=getPreferences(MODE_PRIVATE).getBoolean("reduce_motion",false);
 
         homeView=new TesseraHomeView(this,this);
+        homeView.setCurrentPage(getPreferences(MODE_PRIVATE).getInt("workspace_page",0));
         homeView.setOnApplyWindowInsetsListener((v,insets)->{
             if(Build.VERSION.SDK_INT>=30) {
                 android.graphics.Insets i=insets.getInsets(android.view.WindowInsets.Type.systemBars()
@@ -108,7 +109,6 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
             return insets.consumeSystemWindowInsets();
         });
         setContentView(homeView);
-        refreshApps();
         renderWorkspace();
     }
 
@@ -297,10 +297,11 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
                 Toast.makeText(this,app.label+" is already on Home.",Toast.LENGTH_SHORT).show();return;
             }
         }
-        int page=0,cell=workspaceStore.firstFreeCell(page,4,6);
+        int page=homeView==null?0:homeView.getCurrentPage();
+        int cell=workspaceStore.firstFreeCell(page,4,6);
         if(cell<0) {
-            page=workspaceStore.pageCount();
-            workspaceStore.addPage();
+            page=workspaceStore.addPage();
+            if(homeView!=null)homeView.setCurrentPage(page);
             cell=0;
         }
         workspaceStore.addApp(page,cell%4,cell/4,app.componentName.flattenToString(),app.label,app.userSerial);
@@ -311,6 +312,7 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
 
     @Override public void onAddPageRequested() {
         int page=workspaceStore.addPage();
+        if(homeView!=null)homeView.setCurrentPage(page);
         renderWorkspace();
         Toast.makeText(this,"Workspace page "+(page+1)+" created.",Toast.LENGTH_SHORT).show();
     }
@@ -424,6 +426,7 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
             while((line=reader.readLine())!=null)json.append(line).append('\n');
             List<WorkspaceItem> previousItems=workspaceStore.all();
             int restored=workspaceStore.restoreJson(json.toString());
+            if(homeView!=null)homeView.setCurrentPage(0);
             // The replacement layout committed successfully; now release old device-bound widget IDs.
             for(WorkspaceItem item:previousItems)if(WorkspaceItem.WIDGET.equals(item.type)) {
                 try {widgetHost.deleteAppWidgetId(item.widgetId);} catch(RuntimeException ignored) {}
@@ -438,6 +441,10 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
             Toast.makeText(this,"Invalid or unreadable Tessera backup.",Toast.LENGTH_LONG).show();
         }
     }
+    @Override public void onCurrentPageChanged(int page) {
+        getPreferences(MODE_PRIVATE).edit().putInt("workspace_page",Math.max(0,page)).apply();
+    }
+
     @Override public void onReducedMotionChanged(boolean enabled) {
         reducedMotion=enabled;
         getPreferences(MODE_PRIVATE).edit().putBoolean("reduce_motion",enabled).apply();
@@ -495,8 +502,9 @@ public final class LauncherActivity extends Activity implements TesseraHomeView.
             if(current!=null)for(ShortcutInfo s:current)ids.add(s.getId());
             if(!ids.contains(shortcut.getId()))ids.add(shortcut.getId());
             launcherApps.pinShortcuts(app.packageName,ids,app.user);
-            int page=0,cell=workspaceStore.firstFreeCell(page,4,6);
-            if(cell<0){page=workspaceStore.pageCount();workspaceStore.addPage();cell=0;}
+            int page=homeView==null?0:homeView.getCurrentPage();
+            int cell=workspaceStore.firstFreeCell(page,4,6);
+            if(cell<0){page=workspaceStore.addPage();if(homeView!=null)homeView.setCurrentPage(page);cell=0;}
             workspaceStore.addShortcut(page,cell%4,cell/4,app.componentName.flattenToString(),
                     shortcut.getId(),String.valueOf(shortcut.getShortLabel()),app.userSerial);
             renderWorkspace();
