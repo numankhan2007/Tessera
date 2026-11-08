@@ -137,10 +137,10 @@ public final class TesseraHomeView extends LinearLayout {
                 Typeface.create("sans-serif-medium",Typeface.NORMAL));
         heroGreeting.setLetterSpacing(.19f);
         heroCopy.addView(heroGreeting,new LayoutParams(-1,dp(17)));
-        heroTime=label("5:12",51,IVORY,Typeface.create("sans-serif-light",Typeface.NORMAL));
+        heroTime=label("5:12",48,IVORY,Typeface.create("sans-serif-light",Typeface.NORMAL));
         heroTime.setIncludeFontPadding(false);
-        heroCopy.addView(heroTime,new LayoutParams(-1,dp(59)));
-        hero.addView(heroCopy,new LayoutParams(0,dp(78),1f));
+        heroCopy.addView(heroTime,new LayoutParams(-1,dp(62)));
+        hero.addView(heroCopy,new LayoutParams(0,dp(80),1f));
         TextView orbit=label("✧",42,GOLD,Typeface.create("serif",Typeface.NORMAL));
         orbit.setGravity(Gravity.CENTER);
         orbit.setBackground(rippleSurface(0x221a3527,0x2239b87c,dp(30),0x333e6650));
@@ -159,7 +159,7 @@ public final class TesseraHomeView extends LinearLayout {
             orbit.setScaleX(pulse);
             orbit.setScaleY(pulse);
         });
-        LayoutParams heroLp=new LayoutParams(-1,dp(83));
+        LayoutParams heroLp=new LayoutParams(-1,dp(86));
         heroLp.topMargin=dp(2);
         addView(hero,heroLp);
 
