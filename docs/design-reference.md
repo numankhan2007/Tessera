@@ -10,7 +10,7 @@ Figma source of truth: https://www.figma.com/design/IGoHRIPtbgqFHT3RhpQ24a
 ## 0.4.4 — Daily Canvas / Live Clock Hero
 
 - Home masthead: TESSERA wordmark at left, compact localized date at right, workspace options in a 44 dp circular action.
-- Hero: a 8.5 sp uppercase daypart greeting above a 51 sp sans-serif-light clock, with the existing small gold star emblem as the visual counterweight.
+- Hero: a 8.5 sp uppercase daypart greeting above a 48 sp sans-serif-light clock, with the existing small gold star emblem as the visual counterweight.
 - Clock formatting follows Android's global 12/24-hour preference and updates every minute; the greeting changes across morning, afternoon, evening and night.
 - First-run Home-role action is a centered 224 × 34 dp pill, not a full-width banner.
 - Workspace item count uses concise, non-tracked typography with no letter-spacing that would clip on narrow displays.
