@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.2 — Atmosphere refinement / CI visual gate
+
+- Replaced radial ambient lighting with a restrained diagonal color wash to remove visible contour bands from the wallpaper-first canvas.
+- Kept only five very low-opacity moving motes so the workspace, app icons and wallpaper remain the focus.
+- Made the hero-star orbit continuously reverse and cancel cleanly when detached or when Reduce Motion is enabled.
+- Reworked the Android 15 workflow checks to avoid shell variables across separate emulator-runner command invocations.
+- CI now requires 12 passed, zero failed/skipped JUnit tests and two exported screenshot files.
+
 ## 0.4.1 — Refined aurora / motion polish
 
 - Replaced clipped radial circles with low-contrast, full-canvas aurora gradients to remove visible rings and hard edges.

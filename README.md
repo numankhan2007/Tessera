@@ -4,7 +4,7 @@
 
 Tessera is a native Android HOME application designed around a wallpaper-first workspace, expressive motion, deep emerald surfaces and antique-gold accents. It uses Android launcher APIs for app discovery, app launching, shortcuts and widgets; the home screen is not a WebView or a simulated desktop.
 
-> **Current status:** core launcher with the 0.4.1 Intelligent Workspace and Refined Aurora refresh. It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
+> **Current status:** core launcher with the 0.4.2 Intelligent Workspace and Minimal Atmosphere refresh. It is an installable debug build and is continuously compiled and audited by GitHub Actions. Real-device interaction, OEM-specific widget behavior and release certification still require a physical-device QA pass.
 
 ## Core functionality
 
@@ -44,7 +44,7 @@ Requirements: JDK 17, Android SDK Platform 36, Android SDK Build Tools 36.0.0, G
 gradle --no-daemon :app:assembleDebug
 \`\`\`
 
-The GitHub Actions workflow installs the Android SDK, builds the debug APK, runs Android lint, audits the generated artifact three times, then runs 12 Android instrumentation tests on an Android 15 emulator and requires successful home/app-library PNG captures. The audit checks ZIP integrity, package ID, HOME launcher entry, min/target SDK metadata, and APK signature.
+The GitHub Actions workflow installs the Android SDK, builds the debug APK, runs Android lint, audits the generated artifact three times, then runs 12 Android instrumentation tests on an Android 15 emulator and requires a 12/12 JUnit pass plus both home/app-library PNG captures. The audit checks ZIP integrity, package ID, HOME launcher entry, min/target SDK metadata, and APK signature.
 
 APK output:
 
@@ -73,7 +73,7 @@ This is a complete installable core launcher, not a claim that every possible la
 - Folder contents are app/shortcut entries; individual children can be removed. Nested folders and custom artwork are not supported.
 - Drawer search currently matches installed app labels; it does not search contacts, settings, files, web content or contextual actions.
 - Workspace icons use the app-provided launcher icons. Licensed Reem Kufi / Amiri / Aref Ruqaa assets are not bundled yet; the UI uses installed Android typefaces as safe fallbacks.
-- The 0.4.1 motion system adds an diffuse low-contrast aurora atmosphere, subtle floating motes, looping star-orbit, spring-like workspace entrances, app-library sheet transitions, dock and tile staggering, ripple feedback, tile press response and subtle horizontal page parallax. The app library uses Android application categories and user-pinned dock favourites; it does not request usage-history permission or fabricate app-usage predictions. More advanced physics-based page transitions, per-page wallpaper effects and custom icon packs remain future enhancements.
+- The 0.4.2 motion system adds an restrained diagonal ambient wash, five subtle floating motes, looping star-orbit, spring-like workspace entrances, app-library sheet transitions, dock and tile staggering, ripple feedback, tile press response and subtle horizontal page parallax. The app library uses Android application categories and user-pinned dock favourites; it does not request usage-history permission or fabricate app-usage predictions. More advanced physics-based page transitions, per-page wallpaper effects and custom icon packs remain future enhancements.
 - CI verifies compilation, Android lint, APK archive integrity, package metadata and debug signature. It does not replace installation and gesture/widget testing on a physical device. OEM launchers, work-profile policies, battery optimizers, edge-to-edge insets and individual widgets need device-level QA.
 - A release APK needs a user-owned signing key and signing configuration. The shared debug key is intentionally public and must never be used as a release identity.
 

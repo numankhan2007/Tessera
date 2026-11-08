@@ -7,7 +7,7 @@ Figma source of truth: https://www.figma.com/design/IGoHRIPtbgqFHT3RhpQ24a
 - `16:131` — Search / portal state
 - `18:2` — Typography direction specimen
 
-## 0.4.1 — Intelligent Workspace / Refined Aurora
+## 0.4.2 — Intelligent Workspace / Minimal Atmosphere
 
 The visual language is a quiet, premium launcher surface rather than a collection of outlined cards.
 
@@ -22,7 +22,7 @@ The visual language is a quiet, premium launcher surface rather than a collectio
 
 Motion is expressive but brief and purposeful. It should make the interface feel spatial without making app launching slower.
 
-- The ambient background uses broad, translucent gradients drawn across the full canvas. Avoid clipped radial circles, banding or high-contrast rings.\n- A small hero star loops through a slow, reversing orbit and stops when Reduce Motion is enabled.\n- Workspace columns and dock icons enter with a subtle upward movement, scale settle and stagger.
+- The ambient background uses a single low-opacity diagonal color wash across the full canvas. Avoid clipped radial circles, banding or high-contrast rings.\n- Five very faint motes drift almost imperceptibly; a small hero star loops through a slow, reversing orbit and stops when Reduce Motion is enabled.\n- Workspace columns and dock icons enter with a subtle upward movement, scale settle and stagger.
 - The app library rises from the bottom with a fade and a decelerating curve.
 - App rows arrive in a short stagger; filtering itself remains immediate to preserve search responsiveness.
 - App tiles use a short press response and platform ripple feedback.

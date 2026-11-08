@@ -12,7 +12,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.RadialGradient;
+import android.graphics.LinearGradient;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -91,7 +91,7 @@ public final class TesseraHomeView extends LinearLayout {
     private final Runnable clockTicker=()->updateClock();
     private final Paint ambientPaint=new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint motePaint=new Paint(Paint.ANTI_ALIAS_FLAG);
-    private RadialGradient auroraOne,auroraTwo;
+    private LinearGradient atmosphereGradient;
     private ValueAnimator orbitAnimator;
     private long ambientEpoch=SystemClock.uptimeMillis();
     private float scrollProgress;
@@ -223,13 +223,9 @@ public final class TesseraHomeView extends LinearLayout {
 
     @Override protected void onSizeChanged(int w,int h,int oldw,int oldh) {
         super.onSizeChanged(w,h,oldw,oldh);
-        float radius=Math.max(w,h)*.96f;
-        auroraOne=new RadialGradient(w*.78f,h*.22f,radius,
-                new int[]{0x194b765b,0x0b294838,0x00000000},
-                new float[]{0f,.48f,1f},Shader.TileMode.CLAMP);
-        auroraTwo=new RadialGradient(w*.16f,h*.73f,radius*.86f,
-                new int[]{0x123e6c54,0x07243f31,0x00000000},
-                new float[]{0f,.5f,1f},Shader.TileMode.CLAMP);
+        atmosphereGradient=new LinearGradient(0,0,w,h,
+                new int[]{0x1a2a6045,0x0b172d22,0x10233f30,0x1628523d},
+                new float[]{0f,.34f,.72f,1f},Shader.TileMode.CLAMP);
     }
 
     @Override protected void dispatchDraw(Canvas canvas) {
@@ -239,30 +235,24 @@ public final class TesseraHomeView extends LinearLayout {
     }
 
     private void drawAtmosphere(Canvas canvas) {
-        if(auroraOne==null||auroraTwo==null)return;
+        if(atmosphereGradient==null)return;
         float phase=(SystemClock.uptimeMillis()-ambientEpoch)/1000f;
-        float pulse=.86f+.07f*(float)Math.sin(phase*.36f);
-        float drift=dp(7)*(float)Math.sin(phase*.16f);
-        canvas.save();
-        canvas.translate(drift,0);
-        // Draw the gradients across the whole canvas: no clipped circles or hard radial edges.
-        ambientPaint.setShader(auroraOne);
+        float pulse=.84f+.08f*(float)Math.sin(phase*.34f);
+        ambientPaint.setShader(atmosphereGradient);
         ambientPaint.setAlpha(Math.round(210*pulse));
         canvas.drawRect(0,0,getWidth(),getHeight(),ambientPaint);
-        canvas.translate(-drift*1.65f,0);
-        ambientPaint.setShader(auroraTwo);
-        ambientPaint.setAlpha(Math.round(150*pulse));
-        canvas.drawRect(0,0,getWidth(),getHeight(),ambientPaint);
         ambientPaint.setShader(null);
-        canvas.restore();
 
+        // A handful of very faint motes add depth without competing with icons or wallpaper.
         motePaint.setStyle(Paint.Style.FILL);
         for(int i=0;i<5;i++) {
-            float x=(.16f+((i*37)%77)/100f)*getWidth();
-            float y=(.15f+((i*29)%72)/100f)*getHeight();
-            float twinkle=.22f+.20f*(.5f+.5f*(float)Math.sin(phase*.58f+i*1.9f));
-            motePaint.setColor(Color.argb(Math.round(42*twinkle),190,225,199));
-            canvas.drawCircle(x,y,dp(i%3==0?1.35f:1f),motePaint);
+            float baseX=.16f+((i*37)%77)/100f;
+            float baseY=.15f+((i*29)%72)/100f;
+            float x=(baseX+.004f*(float)Math.sin(phase*.18f+i))*getWidth();
+            float y=(baseY+.004f*(float)Math.cos(phase*.16f+i*1.3f))*getHeight();
+            float twinkle=.2f+.22f*(.5f+.5f*(float)Math.sin(phase*.58f+i*1.9f));
+            motePaint.setColor(Color.argb(Math.round(34*twinkle),190,225,199));
+            canvas.drawCircle(x,y,dp(i%3==0?1.3f:1f),motePaint);
         }
     }
 
@@ -319,7 +309,7 @@ public final class TesseraHomeView extends LinearLayout {
             section.addView(pageTitle,new LayoutParams(0,dp(25),1f));
             int appCount=0;
             for(WorkspaceItem item:items)if(item.page==page)appCount++;
-            TextView count=label(appCount==0?"READY FOR YOU":appCount+" APPS",8,0xff789184,
+            TextView count=label(appCount==0?"READY":"ITEMS  "+String.format(Locale.getDefault(),"%02d",appCount),7,0xff789184,
                     Typeface.create("sans-serif-medium",Typeface.NORMAL));
             count.setLetterSpacing(.11f);
             section.addView(count,new LayoutParams(LayoutParams.WRAP_CONTENT,dp(25)));
